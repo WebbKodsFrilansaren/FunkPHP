@@ -4,4 +4,14 @@
 /** @var FunkPHP $APP */
 $APP->ROUTES()
     ->GET()
-    ->route("/test");
+    ->setRateLimit()
+    ->route("/")
+    ->pipeFunction('test.test')
+    ->route("/test")
+    ->pipeFunction('test.test')
+    ->route("/testa/test2")
+    ->pipeFunction('test.test')
+    ->route("/:id")
+    ->pipeFunction('test.test')
+    ->route("/test2/:id/:id2/test")
+    ->pipeFunction('test.test');

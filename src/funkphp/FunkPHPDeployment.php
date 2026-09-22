@@ -2,8 +2,8 @@
 
 /**
  * FunkPHPDeployment File
- * Built: 2026-09-22 09:33:39
- * Compiler Flags: `OUTPUT_OVERRIDE_DEBUG`, `ALLOW_GHOST_ROUTES`
+ * Built: 2026-09-22 13:31:59
+ * Compiler Flags: `ALLOW_GHOST_ROUTES`, `OUTPUT_OVERRIDE_DEBUG`
  * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING
  */
 
@@ -12,7 +12,7 @@ namespace {
     define('FUNKPHP_ONLINE', true);
     define('ROOT_FOLDER', __DIR__);
     define('ROOT_PAGES', __DIR__ . '/pages');
-    $c = ['BASEURLS' => ['LOCAL' => null, 'ONLINE' => null, 'BASEURL_URI' => null, 'HOST' => null], 'SESSION' => ['driver' => 'files', 'COOKIES' => ['SESSION_NAME' => 'fphp_id', 'SESSION_DOMAIN' => 'funkphp', 'SESSION_PATH' => '/', 'SESSION_LIFETIME' => 28800, 'SESSION_SAMESITE' => 'Lax', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true]], 'shared' => [], 'classes' => ['vendor' => [], 'user' => []], 'credentials' => null, 'connections' => [], 'req' => ['ip' => null, 'method' => null, 'prefers' => null, 'uri' => null, 'route' => null, 'route_matched' => false, 'segments' => null, 'params' => null, 'param_valid' => null, 'params_valid' => null, 'params_details' => null, 'accept_order' => null, 'accepts' => null, 'query' => null, 'base_url_absolute' => null, 'base_url_relative' => null, 'time' => null, 'log' => [], 'ua' => null], 'd' => null, 'v' => null, 'v_ok' => null, 'v_ok_files' => null, 'v_config' => [], 'v_data' => null, 'p' => null, 'files' => null, 'err' => [], 'runtime' => ['request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => null, 'method_headers' => null, 'SKIP_POST_RESPONSE_ON_NO_MATCH' => false, 'NO_ROUTES' => true]];
+    $c = ['BASEURLS' => ['LOCAL' => null, 'ONLINE' => null, 'BASEURL_URI' => null, 'HOST' => null], 'SESSION' => ['driver' => 'files', 'COOKIES' => ['SESSION_NAME' => 'fphp_id', 'SESSION_DOMAIN' => 'funkphp', 'SESSION_PATH' => '/', 'SESSION_LIFETIME' => 28800, 'SESSION_SAMESITE' => 'Lax', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true]], 'shared' => [], 'classes' => ['vendor' => [], 'user' => []], 'credentials' => null, 'connections' => [], 'req' => ['ip' => null, 'method' => null, 'prefers' => null, 'uri' => null, 'route' => null, 'route_matched' => false, 'segments' => null, 'params' => null, 'param_valid' => null, 'params_valid' => null, 'params_details' => null, 'accept_order' => null, 'accepts' => null, 'query' => null, 'base_url_absolute' => null, 'base_url_relative' => null, 'time' => null, 'log' => [], 'ua' => null], 'd' => null, 'v' => null, 'v_ok' => null, 'v_ok_files' => null, 'v_config' => [], 'v_data' => null, 'p' => null, 'files' => null, 'err' => [], 'runtime' => ['request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => null, 'method_headers' => null, 'SKIP_POST_RESPONSE_ON_NO_MATCH' => false]];
     $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
     $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
     $c['req']['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? null;
@@ -1193,6 +1193,22 @@ namespace funkphp\classes {
     }
 }
 
+namespace funkphp\pipes\routes\test {
+    function test(&$c)
+    {
+        if (\funk_req_prefers($c, 'json')) {
+            header('Content-Type: application/json');
+            echo json_encode(["message" => "This is a test JSON response from the test function!",]);
+            exit;
+        }
+        $c['req']['yo'] = "YO";
+        echo "<h1 style='font-size:12px;'>Testing with HTML tags to see how the cURL Request Test functionality in FunkGUI will react to it!</h1>";
+        echo "<div>";
+        echo "<p>(from funkphp\pipes\\routes\\test) This is a test paragraph to see how the cURL Request Test functionality in FunkGUI will react to it!</p>";
+        echo "</div>";
+    }
+}
+
 namespace {
     ob_start();
     if (file_exists(ROOT_FOLDER . '/vendor/autoload.php')) {
@@ -1217,24 +1233,79 @@ namespace {
         unset($spoofedMethod);
     }
     [$c['req']['accept_order'], $c['req']['prefers']] = \funk_internal_negotiate_content($c);
-    if (!in_array($c['req']['method'], [], true)) {
+    if (!in_array($c['req']['method'], ['GET'], true)) {
         FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO:
-        unset($c['runtime']['global_headers']['add']['content-type']);
-        unset($c['runtime']['method_headers']['add'][($c['req']['method'] ?? 'GET')]['content-type']);
-        header_remove('content-type');
-        \funk_internal_send_headers($c);
-        if (($c['req']['prefers'] ?? 'html') === 'json') {
-            http_response_code(404);
-            header('content-type: application/json; charset=utf-8');
-            echo '{"code":500,"error":"404 | No Content or Page Found <br\\/>Are You the Developer, Web Administrator or General Web Master?<br\\/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet \\ud83d\\ude31!"}';
-        } else {
-            http_response_code(404);
-            header('content-type: text/html; charset=utf-8');
-            echo '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!';
+        switch (($c['req']['prefers'] ?? 'html')) {
+            case 'json':
+                \funk_set_header($c, 'content-type', 'application/json');
+                header_remove('content-type');
+                \funk_internal_send_headers($c);
+                http_response_code(404);
+                echo '{"err":"nothing found"}';
+                exit;
+            case 'html':
+                \funk_set_header($c, 'content-type', 'text/html');
+                header_remove('content-type');
+                \funk_internal_send_headers($c);
+                if (!file_exists(ROOT_FOLDER . '/pages/test.php')) {
+                    http_response_code(404);
+                    echo \funk_internal_critical_error_page($c, 404, 'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()', 'No Page Found');
+                } else {
+                    http_response_code(404);
+                    include ROOT_FOLDER . '/pages/test.php';
+                }
+                exit;
+            case 'text':
+                \funk_set_header($c, 'content-type', 'text/plain');
+                header_remove('content-type');
+                \funk_internal_send_headers($c);
+                http_response_code(404);
+                echo 'nothing in GLOBAL!';
+                exit;
+            default:
+                unset($c['runtime']['global_headers']['add']['content-type']);
+                unset($c['runtime']['method_headers']['add'][($c['req']['method'] ?? 'GET')]['content-type']);
+                header_remove('content-type');
+                \test($c);
+                exit;
         }
-        exit;
+        FUNKPHP_NO_ROUTE_MATCH_GET:
+        goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
     }
-    $c['runtime']['SKIP_POST_RESPONSE'] = true;
-    \funk_internal_critical_error_page($c, 404, '(IMPORTANT: No Request Pipes, Middlewares OR Post-Response Pipes will run due to this Message!)<br/><br/>You have no Routes Configured Yet. Get started inside the `/src/funkphp/app/` Folder using the HTTP(S) Method Files (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) and add new Routes using `->route("/static_segment/:dynamic-segment")` and then you can add another Route within the same HTTP(S) Method using another `->route()`.<br/><br/>Each created `->route()` have access to its own Route-specific Param Rules, Non-Matched Param Rules Responses (JSON and Page only), Headers (Add & Remove), Rate Limit, Caching, Middlewares, Handler(s) - also known as "pipes", and Responses.<br/><br/>A Response using `->pipeResponse()` for the `->route()` is what first sends the Headers - inherited Globally and from Method unless overwritten by same in Route - and then the Response such as JSON, HTML, Text, or something else (which you can configure by using `->pipeResponse("callback:custom")` where your User-Defined Custom Function then must set the Header `content-type` and also send the corresponding Content Data matching it', 'Any Route(s)', 'No Routes Configured');
-    exit;
+    $URI = $c['req']['uri'] ?? '/';
+    $SEGS = ($URI === '/') ? [] : explode('/', trim($URI, '/'));
+    $SEGS_COUNT = count($SEGS);
+    if ($SEGS_COUNT > 4) {
+        unset($URI, $SEGS_COUNT);
+        goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
+    }
+    $c['runtime']['state'] = 'method';
+    switch (($c['req']['method'] ?? 'GET')) {
+        case 'GET':
+            \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
+            switch ($URI) {
+                case '/':
+                    goto FUNKPHP_ROUTE_GET_;
+                case '/test':
+                    goto FUNKPHP_ROUTE_GET_TEST;
+                case '/testa/test2':
+                    goto FUNKPHP_ROUTE_GET_TESTA_TEST2;
+            }
+            switch ($SEGS_COUNT) {
+                case 1:
+                    goto FUNKPHP_GET_SEGS_1;
+                case 2:
+                    if (strcasecmp($SEGS[0], 'testa') === 0 && strcasecmp($SEGS[1], 'test2') === 0) {
+                        goto FUNKPHP_ROUTE_GET_TESTA_TEST2;
+                    }
+                case 4:
+                    if (strcasecmp($SEGS[0], 'test2') === 0 && strcasecmp($SEGS[3], 'test') === 0) {
+                        goto FUNKPHP_ROUTE_GET_TEST2__ID__ID2_TEST;
+                    }
+                default:
+                    goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
+            }
+            break;
+    }
+    echo 'a';
 }

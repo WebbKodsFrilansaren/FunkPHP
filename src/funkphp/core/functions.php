@@ -1888,7 +1888,7 @@ function funk_internal_handle_no_no_route_match(&$c)
     // Set HTTP status code & headers BEFORE sending HTML output
     http_response_code(404);
     header("content-type: text/html; charset=utf-8");
-    $html = \funk_internal_critical_error_page($c, $message);
+    $html = \funk_internal_critical_error_page($c, 404, $message, '', 'No Content Found');
     echo $html;
     exit;
 }

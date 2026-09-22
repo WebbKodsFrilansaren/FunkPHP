@@ -157,8 +157,10 @@ class FunkPHPC
         'FILES' => [],
         'INTERNAL' => [],
     ];
-    private string $NO_ROUTE_TEXT = '(IMPORTANT: No Request Pipes, Middlewares OR Post-Response Pipes will run due to this Message!)<br/><br/>You have no Routes Configured Yet. Get started inside the `/src/funkphp/app/` Folder using the HTTP(S) Method Files (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) and add new Routes using `->route("/static_segment/:dynamic-segment")` and then you can add another Route within the same HTTP(S) Method using another `->route()`.<br/><br/>Each created `->route()` have access to its own Route-specific Param Rules, Non-Matched Param Rules Responses (JSON and Page only), Headers (Add & Remove), Rate Limit, Caching, Middlewares, Handler(s) - also known as "pipes", and Responses.<br/><br/>A Response using `->pipeResponse()` for the `->route()` is what first sends the Headers - inherited Globally and from Method unless overwritten by same in Route - and then the Response such as JSON, HTML, Text, or something else (which you can configure by using `->pipeResponse("callback:custom")` where your User-Defined Custom Function then must set the Header `content-type` and also send the corresponding Content Data matching it';
-    private string $NO_BATCHES_TEXT = 'If You are reading this then nothing has been Configured yet.<br/><br/>Go into `/src/funkphp/app` Folder and `Configure Globally` inside of `config.php`.<br/><br/>Go inside the different HTTP(S) Methods (`GET`,`POST`,`PUT`,`PATCH`,`DELETE`) Files to Configure them with Routes (via `->route("/static_segment/:dynamic-segment")`) and other `->set|pipe<What>()` Method calls.<br/><br/>You `Configure for Specific Method` under its `->METHOD_NAME()` with same `->set|pipe<What>()` Method calls just like for the Global `CONFIG` File.<br/><br/>Visit FunkPHP.com for more current Official Documentation.';
+    private string $NO_PIPES_FOUND_TEXT = 'This Route has no Pipes (no Middleware or Route).<br/><br/>You can add Middlewares with `->pipeMiddleware()` and/or Pipes with `->pipeFunction()` to it.';
+    private string $NO_DEFAULT_NO_FOUND_TEXT = 'No Content Found.<br/><br/> If You are the Developer, you can use `->setNoRouteMatchPage()` to set a Default "Not Found" Page which can be different Globally (Catch-All) and for each specific HTTP(S) Method.<br/><br/> This is an Error that is shown when there is no Configured "No Page Found".';
+    private string $NO_ROUTE_TEXT = '(IMPORTANT: No Request Pipes, Middlewares OR Post-Response Pipes will run due to this Message!)<br/><br/> You have no Routes Configured Yet. Get started inside the `/src/funkphp/app/` Folder using the HTTP(S) Method Files (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) and add new Routes using `->route("/static_segment/:dynamic-segment")` and then you can add another Route within the same HTTP(S) Method using another `->route()`.<br/><br/> Each created `->route()` have access to its own Route-specific Param Rules, Non-Matched Param Rules Responses (JSON and Page only), Headers (Add & Remove), Rate Limit, Caching, Middlewares, Handler(s) - also known as "pipes", and Responses.<br/><br/> A Response using `->pipeResponse()` for the `->route()` is what first sends the Headers - inherited Globally and from Method unless overwritten by same in Route - and then the Response such as JSON, HTML, Text, or something else (which you can configure by using `->pipeResponse("callback:custom")` where your User-Defined Custom Function then must set the Header `content-type` and also send the corresponding Content Data matching it';
+    private string $NO_BATCHES_TEXT = 'If You are reading this then nothing has been Configured yet.<br/><br/>Go into `/src/funkphp/app` Folder and `Configure Globally` inside of `config.php`.<br/><br/> Go inside the different HTTP(S) Methods (`GET`,`POST`,`PUT`,`PATCH`,`DELETE`) Files to Configure them with Routes (via `->route("/static_segment/:dynamic-segment")`) and other `->set|pipe<What>()` Method calls.<br/><br/> You `Configure for Specific Method` under its `->METHOD_NAME()` with same `->set|pipe<What>()` Method calls just like for the Global `CONFIG` File.<br/><br/> Visit FunkPHP.com for more current Official Documentation.';
     private array $WARNINGS = [];
     private array $compileFlags = [];
     // Valid + Invalid batches, compile() only starts if $invalidBatches is empty!
@@ -267,7 +269,7 @@ class FunkPHPC
                 'method_headers' => null,
                 'NO_ROUTE_MATCH' => null,
                 'NO_ROUTE_MATCH_METHOD' => null,
-                'NO_NO_MATCH_MESSAGE' => '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!',
+                'NO_NO_MATCH_MESSAGE' => 'No Content Found.<br/><br/>If You are the Developer, you can use `->setNoRouteMatchPage()` to set a Default "Not Found" Page which can be different Globally (Catch-All) and for each specific HTTP(S) Method.<br/><br/>This is an Error that is shown when there is no Configured "No Page Found".',
                 'SKIP_POST_RESPONSE_ON_NO_MATCH' => false,
             ],
             'pipes' => [
@@ -280,7 +282,7 @@ class FunkPHPC
             ],
         ],
         'methods' => [],
-        'routes' => ['trie' => [], 'trie_metadata' => []],
+        'routes' => ['trie' => [], 'trie_metadata' => [], 'goto_score_tree' => [], 'goto_ast_tree' => []],
         'pages' => [],
         'data' => [],
         // This is the $c Variable that is then assigned automatically globally.
@@ -7262,6 +7264,7 @@ class FunkPHPC
                 'minURICount'             => 0,
                 'maxURICount'             => 0,
                 'URICountExistsForNumber' => [],
+                'RouteCOUNTByURINumber' => [],
                 'allRoutesCount'          => 0,
                 'staticRoutesCount'       => 0,
                 'dynamicRoutesCount'      => 0,
@@ -7274,7 +7277,10 @@ class FunkPHPC
                     $segmentCount = substr_count($trimmedRoute, '/') + 1;
                 }
                 $segmentCountsCollected[] = $segmentCount;
-                $metadata[$method]['URICountExistsForNumber'][$segmentCount] = 1;
+                $metadata[$method]['URICountExistsForNumber'][$segmentCount] = true;
+                $metadata[$method]['RouteCOUNTByURINumber'][$segmentCount][] = $routeStr;
+                ksort($metadata[$method]['URICountExistsForNumber']);
+                ksort($metadata[$method]['RouteCOUNTByURINumber']);
                 $metadata[$method]['allRoutes'][$routeStr] = 1;
                 if (str_contains($routeStr, ':')) {
                     $metadata[$method]['dynamicRoutes'][$routeStr] = 1;
@@ -7725,6 +7731,7 @@ class FunkPHPC
                 $msg = str_replace(['\/', '\\/'], '/', json_encode($msg, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES));
             }
             $escaped = htmlspecialchars($msg, ENT_QUOTES, 'UTF-8');
+            $escaped = preg_replace('/&lt;br\s*\/?&gt;/i', '<br/>', $escaped);
             return preg_replace('/`([^`]+)`/', '<span class="code-badge">$1</span>', $escaped);
         };
         // Prepare and count all errors (if any)
@@ -8155,6 +8162,7 @@ class FunkPHPC
             </style>
         </head>
 
+
         <body>
             <div class="container">
                 <div class="header">
@@ -8498,6 +8506,12 @@ class FunkPHPC
                                         </div>
                                     </div>
                                     <div class="tab-group">
+                                        <?php if (isset($compiled['built']) && $compiled['built'] === true): ?>
+                                            <div class="tab-header" style="display:flex; align-items:center; align-content:center; gap:0.5rem; color:#137333;"><?= $PATH_BASE64; ?> /src/funkphp/FunkPHPDeployment.php BUILT! ('built' => true)</div>
+                                        <?php else: ?>
+                                            <div class="tab-header" style="display:flex; align-items:center; align-content:center; gap:0.5rem; color:#ff7b72;"><?= $PATH_BASE64; ?> /src/funkphp/FunkPHPDeployment.php NOT BUILT! ('built' => false)</div>
+                                        <?php endif; ?>
+
                                         <div class="tab-header" style="display:flex; align-items:center; align-content:center; gap:0.5rem;"><?= $COMPILED_BASE64; ?>FunkPHP Compiled API (relevant files <?= $PATH_BASE64; ?> /src/funkphp/app)</div>
                                         <div class="api-card api-card-consolidated" style="padding:1px;">
                                             <?= dd($compiled, 'Either RUNS/OUTPUTS as FunkPHPDeployment.php OR You Parse with Custom HTTPS Kernel Function!', false); ?>
@@ -9097,7 +9111,7 @@ class FunkPHPC
         // 8.3 Post-Response Pipes
         // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['post_response'])) {
-            $this->compile_setWarn("No Post-Response File Functions used", "No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` found. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`), nothing else happens. `Piped Post-Response Functions` are otherwise executed via the in-built PHP Function `register_shutdown_function()` in the ordered they have been added/piped. This is also why you will get a Fatal Compiling Error if you try to use the `register_shutdown_function()` inside any of your Function Files.");
+            $this->compile_setWarn("No Post-Response File Functions used", "No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` found. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`), nothing else happens.<br/><br/>`Piped Post-Response Functions` are otherwise executed via the in-built PHP Function `register_shutdown_function()` in the ordered they have been added/piped. This is also why you will get a Fatal Compiling Error if you try to use the `register_shutdown_function()` inside any of your Function Files.");
         }
         // post_response pipes exist
         else {
@@ -9275,7 +9289,7 @@ class FunkPHPC
                         && count($routeDetails['middlewares']) === 0
                     ) {
                         if (!isset($this->compileFlags['ALLOW_GHOST_ROUTES'])) {
-                            $this->compile_setErr("👻 GHOST ROUTE `{$CURRENT_ROUTE_STR}`👻", "You must have `at least 1 Pipe` (when you do not need any Middleware) OR `at least 1 Middleware` (when you only want the Route to act as a Middleware Scope for other Children Routes to inherit Middleware from; this means the Pipe-Empty Route returns `404` when 'matched') for a given Method/Route in order for it to be considered Valid to Compile. Due to this Error, no further Compiling for this current Route `{$method}{$route}` will take place until `at least 1 Route Pipe/Middleware` first has been added. Use `->setCompileFlag('ALLOW_GHOST_ROUTES')` in `/src/funkphp/app/CONFIG.app` if you need to allow for Empty Routes for the moment. This Compiler Flag will be removed when `php funk build` is used to build the `FunkPHPDeployment.php` File as Empty Routes should NOT be used in Production.");
+                            $this->compile_setErr("👻 GHOST ROUTE `{$CURRENT_ROUTE_STR}`👻", "You must have `at least 1 Pipe` (when you do not need any Middleware) OR `at least 1 Middleware` (when you only want the Route to act as a Middleware Scope for other Children Routes to inherit Middleware from. If You ONLY use Middlewares for this Route then that means the Route Pipe-Empty Route `{$CURRENT_ROUTE_STR}` will return `404` when 'matched/visited').<br/><br/>Due to this Error, no further Compiling for this current Route `{$method}{$route}` will take place until `at least 1 Route Pipe/Middleware` first has been added. Use `->setCompileFlag('ALLOW_GHOST_ROUTES')` in `/src/funkphp/app/CONFIG.app` if you need to allow for Empty Routes for the moment. This Compiler Flag will be removed when `php funk build` is used to build the `FunkPHPDeployment.php` File as Empty Routes should NOT be used in Production and `php funk build` is meant for intentionally building it for Production!");
                             $this->compiled['routes'][$method][$route] = $routeDetails;
                             $this->compiled['routes'][$method][$route]['👻GHOST_ROUTE👻'] = true;
                             continue;
@@ -9319,7 +9333,7 @@ class FunkPHPC
                                 $this->compiled['routes'][$method][$route]['params'][$routeParam] = ['pattern' => '/[^\/]+/', 'default' => null, 'callback' => null, 'implicit' => true];
                                 $this->compiled['routes'][$method][$route]['hasImplicitAlwaysMatchParam'] = true;
                                 $this->cached['placeholderImplicitParams'][$method][$route][] = [$routeParam];
-                                $this->compile_setWarn("No Param Rule Available for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "The following Param `{$routeParam}` in `{$CURRENT_ROUTE_STR}` has no Available Param Rules in Current Route, not in `{$method}`, and not in Global CONFIG. This means that You need to `Parse the Param Manually` using any of your `Route Pipe Function(s)`. If that is exactly what You are doing for `{$CURRENT_ROUTE_STR}`, just ignore this warning. Default Param Regex `/[^/]+/` has been applied to it so it gets through Param Validation. You will see the Route Key `hasImplicitAlwaysMatchParam` in Debugging/Logging for this Route that means it was automatically added since you must EXPLCITITLY set an Everything-Matches `*` Regex Pattern in order for it to get into Build Version (running locally always works).");
+                                $this->compile_setWarn("No Param Rule Available for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "The following Param `{$routeParam}` in `{$CURRENT_ROUTE_STR}` has no Available Param Rules in Current Route, not in `{$method}`, and not in Global CONFIG. This means that You need to `Parse the Param Manually` using any of your `Route Pipe Function(s)`. If that is exactly what You are doing for `{$CURRENT_ROUTE_STR}`, just ignore this warning.<br/><br/> Default Param Regex `/[^/]+/` has been applied to it so it gets through Param Validation. You will see the Route Key `hasImplicitAlwaysMatchParam` in Debugging/Logging for this Route that means it was automatically added since you must EXPLCITITLY set an Everything-Matches `*` Regex Pattern in order for it to get into Build Version (running locally always works).");
                             }
                         }
                         // Iterate through each param to disallow conflicting param id names
@@ -9677,7 +9691,7 @@ class FunkPHPC
                         if (isset($this->compileFlags['ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'])) {
                             $this->compile_setErr("Response is REQUIRED in Route `{$CURRENT_ROUTE_STR}`", "Compiler Flag `ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE` forces `{$CURRENT_ROUTE_STR}` to have a `->pipeResponse()`.");
                         } else if (!isset($this->compileFlags['HIDE_NO_ROUTE_RESPONSE_WARNING'])) {
-                            $this->compile_setWarn("No Response in Route `{$CURRENT_ROUTE_STR}`", "The Route `{$CURRENT_ROUTE_STR}` has no `Piped Response` (via `->pipeResponse()`) meaning it must be handled manually inside of Pipe Functions OR the Route `{$CURRENT_ROUTE_STR}` would essentially NOT have a Response to the End-user. Use `funk_return_response_page()`, `funk_return_response_json()`, `funk_return_response_text()`, `funk_return_response_callback()`, or `funk_return_response_file()` inside any of the referenced Files=>Functions in any of the `->pipeFunction()` in order to fulfill the requirement of returning a Response in the Route `{$CURRENT_ROUTE_STR}`. Remember that no other `->pipe<TYPE>()` can be used after the `->pipeResponse()` for the Route as it is meant to complete the HTTP(S) Request.");
+                            $this->compile_setWarn("No Response in Route `{$CURRENT_ROUTE_STR}`", "The Route `{$CURRENT_ROUTE_STR}` has no `Piped Response` (via `->pipeResponse()`) meaning it must be handled manually inside of Pipe Functions OR the Route `{$CURRENT_ROUTE_STR}` would essentially NOT have a Response to the End-user.<br/><br/> Use `funk_return_response_page()`, `funk_return_response_json()`, `funk_return_response_text()`, `funk_return_response_callback()`, or `funk_return_response_file()` inside any of the referenced Files=>Functions in any of the `->pipeFunction()` in order to fulfill the requirement of returning a Response in the Route `{$CURRENT_ROUTE_STR}`.<br/><br/> Remember that no other `->pipe<TYPE>()` can be used after the `->pipeResponse()` for the Route as it is meant to complete the HTTP(S) Request. For example, trying to `->pipeFunction()` anywhere after `->pipeResponse()` OR `->pipeFunctionsThenResponse()` for `{$CURRENT_ROUTE_STR}` will generate Compile Error.");
                         }
                     } else {
                         if (
@@ -10134,7 +10148,7 @@ class FunkPHPC
                     $FUNK_DEPLOY_ARR[] = "funk_set_header(\$c,'content-type','text/html'); header_remove('content-type');\n";
                     $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
                     $FUNK_DEPLOY_ARR[] = "if(!file_exists(ROOT_FOLDER . '/pages/$PAGE.php')) {\n";
-                    $FUNK_DEPLOY_ARR[] = "http_response_code(404);\n echo \\funk_internal_critical_error_page(\$c,404,'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()'); } \n";
+                    $FUNK_DEPLOY_ARR[] = "http_response_code(404);\n echo \\funk_internal_critical_error_page(\$c,404,'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()','No Page Found'); } \n";
                     $FUNK_DEPLOY_ARR[] = "else { http_response_code($CODE);\n include ROOT_FOLDER . '/pages/$PAGE.php'; }\n";
                     $FUNK_DEPLOY_ARR[] = "exit;\n";
                 } else if (isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH']['TEXT'])) {
@@ -10153,6 +10167,7 @@ class FunkPHPC
                     $FUNK_DEPLOY_ARR[] = "\\$CALLBACK(\$c);\n";
                     $FUNK_DEPLOY_ARR[] = "exit;\n";
                 }
+                // default case when NOT callback exists
                 if (
                     count($this->compiled['config']['runtime']['NO_ROUTE_MATCH']) === 1
                     && !isset($this->compiled['config']['runtime']['NO_ROUTE_MATCH']['CALLBACK'])
@@ -10174,7 +10189,7 @@ class FunkPHPC
                     } else {
                         $FUNK_DEPLOY_ARR[] = var_export(json_encode([
                             'code' => 404,
-                            'error' => "404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!"
+                            'error' => str_replace('<br/>', '', $this->NO_DEFAULT_NO_FOUND_TEXT)
                         ]), true);
                     }
                     $FUNK_DEPLOY_ARR[] = ";";
@@ -10186,9 +10201,9 @@ class FunkPHPC
                         && is_string($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'])
                         && trim($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE']) !== ''
                     ) {
-                        $FUNK_DEPLOY_ARR[] = "echo " . var_export($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'], true) . ";\n";
+                        $FUNK_DEPLOY_ARR[] = "echo \\funk_internal_critical_error_page(\$c,404," . var_export($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'], true) . ",'','No Content Found');\n";
                     } else {
-                        $FUNK_DEPLOY_ARR[] = "echo '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!';";
+                        $FUNK_DEPLOY_ARR[] = "echo \\funk_internal_critical_error_page(\$c,404," . var_export($this->NO_DEFAULT_NO_FOUND_TEXT, true) . ",'','No Content Found');\n";
                     }
                     $FUNK_DEPLOY_ARR[] = "} exit;\n";
                 }
@@ -10215,7 +10230,7 @@ class FunkPHPC
                     $FUNK_DEPLOY_ARR[] = "funk_set_header(\$c,'content-type','text/html'); header_remove('content-type');\n";
                     $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
                     $FUNK_DEPLOY_ARR[] = "if(!file_exists(ROOT_FOLDER . '/pages/$PAGE.php')) {\n";
-                    $FUNK_DEPLOY_ARR[] = "http_response_code(404);\n echo \\funk_internal_critical_error_page(\$c,404,'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()'); } \n";
+                    $FUNK_DEPLOY_ARR[] = "http_response_code(404);\n echo \\funk_internal_critical_error_page(\$c,404,'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()','No Page Found'); } \n";
                     $FUNK_DEPLOY_ARR[] = "else { http_response_code($CODE);\n include ROOT_FOLDER . '/pages/$PAGE.php'; }\n";
                     $FUNK_DEPLOY_ARR[] = "exit;\n";
                 }
@@ -10255,7 +10270,7 @@ class FunkPHPC
                     } else {
                         $FUNK_DEPLOY_ARR[] = var_export(json_encode([
                             'code' => 404,
-                            'error' => "404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!"
+                            'error' => str_replace('<br/>', '', $this->NO_DEFAULT_NO_FOUND_TEXT)
                         ]), true);
                     }
                     $FUNK_DEPLOY_ARR[] = ";";
@@ -10267,9 +10282,9 @@ class FunkPHPC
                         && is_string($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'])
                         && trim($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE']) !== ''
                     ) {
-                        $FUNK_DEPLOY_ARR[] = "echo " . var_export($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'], true) . ";\n";
+                        $FUNK_DEPLOY_ARR[] = "echo \\funk_internal_critical_error_page(\$c,404," . var_export($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'], true) . ",'','No Content Found');\n";
                     } else {
-                        $FUNK_DEPLOY_ARR[] = "echo '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!';";
+                        $FUNK_DEPLOY_ARR[] = "echo \\funk_internal_critical_error_page(\$c,404," . var_export($this->NO_DEFAULT_NO_FOUND_TEXT, true) . ",'','No Content Found');\n";
                     }
                     $FUNK_DEPLOY_ARR[] = "} exit;\n";
                 }
@@ -10294,7 +10309,7 @@ class FunkPHPC
             } else {
                 $FUNK_DEPLOY_ARR[] = var_export(json_encode([
                     'code' => 500,
-                    'error' => "404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!"
+                    'error' => str_replace('<br/>', '', $this->NO_DEFAULT_NO_FOUND_TEXT)
                 ]),);
             }
             $FUNK_DEPLOY_ARR[] = ";";
@@ -10306,9 +10321,9 @@ class FunkPHPC
                 && is_string($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'])
                 && trim($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE']) !== ''
             ) {
-                $FUNK_DEPLOY_ARR[] = "echo " . var_export($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'], true) . ";\n";
+                $FUNK_DEPLOY_ARR[] = "echo \\funk_internal_critical_error_page(\$c,404," . var_export($this->compiled['config']['runtime']['NO_NO_MATCH_MESSAGE'], true) . ",'','No Content Found');\n";
             } else {
-                $FUNK_DEPLOY_ARR[] = "echo '404 | No Content or Page Found <br/>Are You the Developer, Web Administrator or General Web Master?<br/> There is NO Configured Global `->setNoRouteMatch&lt;Variant&gt;` Yet 😱!';";
+                $FUNK_DEPLOY_ARR[] = "echo \\funk_internal_critical_error_page(\$c,404," . var_export($this->NO_DEFAULT_NO_FOUND_TEXT, true) . ",'','No Content Found');\n";
             }
             $FUNK_DEPLOY_ARR[] = "} exit;\n";
         }
@@ -10337,7 +10352,7 @@ class FunkPHPC
                         $FUNK_DEPLOY_ARR[] = "funk_set_header(\$c,'content-type','text/html'); header_remove('content-type');\n";
                         $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
                         $FUNK_DEPLOY_ARR[] = "if(!file_exists(ROOT_FOLDER . '/pages/$PAGE.php')) {\n";
-                        $FUNK_DEPLOY_ARR[] = "http_response_code(404);\n echo \\funk_internal_critical_error_page(\$c,404,'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()'); } \n";
+                        $FUNK_DEPLOY_ARR[] = "http_response_code(404);\n echo \\funk_internal_critical_error_page(\$c,404,'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()','No Page Found'); } \n";
                         $FUNK_DEPLOY_ARR[] = "else { http_response_code($CODE);\n include ROOT_FOLDER . '/pages/$PAGE.php'; }\n";
                         $FUNK_DEPLOY_ARR[] = "exit;\n";
                     } else if (isset($noMatch['TEXT'])) {
@@ -10384,7 +10399,7 @@ class FunkPHPC
                         $FUNK_DEPLOY_ARR[] = "funk_set_header(\$c,'content-type','text/html'); header_remove('content-type');\n";
                         $FUNK_DEPLOY_ARR[] = $SEND_INTERNAL_HEADERS_STRING;
                         $FUNK_DEPLOY_ARR[] = "if(!file_exists(ROOT_FOLDER . '/pages/$PAGE.php')) {\n";
-                        $FUNK_DEPLOY_ARR[] = "http_response_code(404);\n echo \\funk_internal_critical_error_page(\$c,404,'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()'); } \n";
+                        $FUNK_DEPLOY_ARR[] = "http_response_code(404);\n echo \\funk_internal_critical_error_page(\$c,404,'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()','No Page Found'); } \n";
                         $FUNK_DEPLOY_ARR[] = "else { http_response_code($CODE);\n include ROOT_FOLDER . '/pages/$PAGE.php'; }\n";
                         $FUNK_DEPLOY_ARR[] = "exit;\n";
                     }
@@ -10440,6 +10455,7 @@ class FunkPHPC
         $FUNK_DEPLOY_ARR[] = "unset(\$URI, \$SEGS_COUNT);\n";
         $FUNK_DEPLOY_ARR[] = "goto $GOTO_STR_NO_MATCH_GLOBAL_AND_FALLBACK;\n";
         $FUNK_DEPLOY_ARR[] = "}\n";
+        // Prepare static routes that can be matched O(1) if all segments lowercased
         $STATIC_ROUTES = [];
         foreach ($TRIE as $TRIE_M => $TRIE_D) {
             if ($TRIE_M === '<ALL>') {
@@ -10452,6 +10468,25 @@ class FunkPHPC
                 }
             }
         }
+        // Helper function to output online if strcasecmp() check when method has only one route
+        $URI_SEG_IF_GENERATOR = function (string $method, string $uri) {
+            $routeGoto = "FUNKPHP_ROUTE_" . $method . $this->compile_upper_transform_route($uri);
+            $conditions = [];
+            $trimmedUri  = trim($uri, '/');
+            $segs = $trimmedUri === '' ? [] : explode('/', $trimmedUri);
+            foreach ($segs as $index => $seg) {
+                if (str_starts_with($seg, ':')) {
+                    continue;
+                }
+                $escapedSeg = var_export($seg, true);
+                $conditions[] = "strcasecmp(\$SEGS[{$index}], {$escapedSeg}) === 0";
+            }
+            if (empty($conditions)) { // Edge-case: all dynamic segments
+                return "goto {$routeGoto};";
+            }
+            $ifCondition = implode(' && ', $conditions);
+            return "if ({$ifCondition}) { goto {$routeGoto}; }";
+        };
         // state is 'method' as we here have matched an existing method and setting
         // this state is really only for also sending correct method headers
         $FUNK_DEPLOY_ARR[] = "\$c['runtime']['state'] = 'method';\n";
@@ -10460,9 +10495,11 @@ class FunkPHPC
         if (!empty($this->compiled['routes']['trie'])) {
             $FUNK_DEPLOY_ARR[] = "switch ((\$c['req']['method'] ?? 'GET')) {\n";
             foreach ($this->compiled['routes']['trie'] as $methodName => $_) {
+                $this->compiled['routes']['goto_score_tree'][$methodName] = $this->compile_score_routes_by_method(array_keys($this->compiled['routes'][$methodName]));
+                $this->compiled['routes']['goto_ast_tree'][$methodName] = $this->compile_build_route_ast($this->compiled['routes']['goto_score_tree'][$methodName], $methodName);
                 $FUNK_DEPLOY_ARR[] = "case '{$methodName}':\n";
                 if (isset($this->compiled['methods'][$methodName]['ratelimit'])) {
-                    $$mConfig = $this->compiled['methods'][$methodName]['ratelimit'];
+                    $mConfig = $this->compiled['methods'][$methodName]['ratelimit'];
                     $mMax    = $mConfig['max_requests'];
                     $mWindow = $mConfig['window_seconds'];
                     $mBy     = $this->exportShortSyntax($mConfig['by']);
@@ -10472,7 +10509,35 @@ class FunkPHPC
                 if (isset($STATIC_ROUTES[$methodName])) {
                     $FUNK_DEPLOY_ARR[] = "switch (\$URI) {\n";
                     foreach ($STATIC_ROUTES[$methodName] as $sR => $sRG) {
-                        $FUNK_DEPLOY_ARR[] = "case " . var_export($sR, true) . ": goto {$sRG};\n";
+                        $RLimit = '';
+                        $RCache = '';
+                        if (isset($this->compiled['routes'][$methodName][$sR]['ratelimit'])) {
+                            $RLimit = "\\funk_internal_rate_limiter(\$c,"
+                                . var_export($this->compiled['routes'][$methodName][$sR]['ratelimit']['max_requests'], true)
+                                . ","
+                                . var_export($this->compiled['routes'][$methodName][$sR]['ratelimit']['window_seconds'], true)
+                                . ","
+                                . $this->exportShortSyntax($this->compiled['routes'][$methodName][$sR]['ratelimit']['by'])
+                                . ","
+                                . var_export($this->compiled['routes'][$methodName][$sR]['ratelimit']['driver'], true)
+                                . ");\n";
+                        }
+                        if (isset($this->compiled['routes'][$methodName][$sR]['cache'])) {
+                            $RCache = "\\funk_internal_route_cache(\$c,"
+                                . var_export($this->compiled['routes'][$methodName][$sR]['cache']['ttl'], true)
+                                . ","
+                                . var_export($this->compiled['routes'][$methodName][$sR]['cache']['driver'], true)
+                                . ","
+                                . $this->exportShortSyntax($this->compiled['routes'][$methodName][$sR]['cache']['varyBy'])
+                                . ","
+                                . var_export($this->compiled['routes'][$methodName][$sR]['cache']['private'], true)
+                                . ");\n";
+                        }
+                        if (isset($this->compiled['routes'][$methodName][$sR]['👻GHOST_ROUTE👻'])) {
+                            $FUNK_DEPLOY_ARR[] = "case " . var_export($sR, true) . ": $RLimit $RCache \\funk_internal_critical_error_page(\$c,404," . var_export($this->NO_PIPES_FOUND_TEXT, true) . ",'No Pipes in Route','No Pipes Found'); exit;\n";
+                        } else {
+                            $FUNK_DEPLOY_ARR[] = "case " . var_export($sR, true) . ": $RLimit $RCache goto {$sRG};\n";
+                        }
                     }
                     $FUNK_DEPLOY_ARR[] = "}\n";
                 }
@@ -10486,8 +10551,19 @@ class FunkPHPC
                     $FUNK_DEPLOY_ARR[] = "switch(\$SEGS_COUNT)\n";
                     $FUNK_DEPLOY_ARR[] = "{\n";
                     foreach ($TRIE[$methodName]['URICountExistsForNumber'] as $TRIE_URICaseCount => $_) {
+                        // 0 segments "/" which is static guaranteed and handled before this point
+                        if ($TRIE_URICaseCount === 0) {
+                            continue;
+                        }
                         $FUNK_DEPLOY_ARR[] = "case $TRIE_URICaseCount:\n";
-                        $FUNK_DEPLOY_ARR[] = "goto FUNKPHP_{$methodName}_SEGS_{$TRIE_URICaseCount};\n";
+                        if (
+                            isset($TRIE[$methodName]['RouteCOUNTByURINumber'][$TRIE_URICaseCount])
+                            && count($TRIE[$methodName]['RouteCOUNTByURINumber'][$TRIE_URICaseCount]) === 1
+                        ) {
+                            $FUNK_DEPLOY_ARR[] = $URI_SEG_IF_GENERATOR($methodName, $TRIE[$methodName]['RouteCOUNTByURINumber'][$TRIE_URICaseCount][0]);
+                        } else {
+                            $FUNK_DEPLOY_ARR[] = "goto FUNKPHP_{$methodName}_SEGS_{$TRIE_URICaseCount};\n";
+                        }
                     }
                     if (isset($this->compiled['methods'][$methodName]['NO_ROUTE_MATCH'])) {
                         $FUNK_DEPLOY_ARR[] = "default: goto FUNKPHP_NO_ROUTE_MATCH_{$methodName};\n";
@@ -10499,6 +10575,9 @@ class FunkPHPC
                 $FUNK_DEPLOY_ARR[] = "break;\n";
             }
             $FUNK_DEPLOY_ARR[] = "}\n";
+
+            // Now we prepare for Binary=>Dec-based Scoring AST Tree
+            $FUNK_DEPLOY_ARR[] = "echo 'a'\n;";
         }
         // HERE ACTUAL GOTO LABELS:-madness begin for real!
 
@@ -10882,6 +10961,108 @@ class FunkPHPC
         }
         return str_replace([':', '/'], '_', strtoupper($route));
     }
+
+    function compile_score_routes_by_method(array $routesForMethod): array
+    {
+        $groupedByCount = [];
+        foreach ($routesForMethod as $routeStr) {
+            $trimmed = trim($routeStr, '/');
+            if ($trimmed === '') {
+                $groupedByCount[0][] = [
+                    'route'    => '/',
+                    'segments' => [],
+                    'mask'     => '1',
+                    'score'    => 1,
+                ];
+                continue;
+            }
+
+            $segments = explode('/', $trimmed);
+            $segCount = count($segments);
+            $bits = [];
+
+            foreach ($segments as $segment) {
+                $bits[] = str_starts_with($segment, ':') ? '0' : '1';
+            }
+
+            $binaryMask = implode('', $bits);
+            $score      = bindec($binaryMask);
+
+            $groupedByCount[$segCount][] = [
+                'route'    => $routeStr,
+                'segments' => $segments,
+                'mask'     => $binaryMask,
+                'score'    => $score,
+            ];
+        }
+
+        // Sort every segment group highest score first (Static > Dynamic)
+        foreach ($groupedByCount as $segCount => &$routesGroup) {
+            usort($routesGroup, function ($a, $b) {
+                return $b['score'] <=> $a['score'];
+            });
+        }
+
+        return $groupedByCount;
+    }
+
+    /**
+     * Builds intermediate AST tree grouped by segment count and path segments.
+     */
+    private function compile_build_route_ast(array $preparedRoutes, string $method): array
+    {
+        $ast = [];
+        $method = strtoupper($method);
+
+        // Outer loop iterates through each segment length group
+        foreach ($preparedRoutes as $segCount => $routesGroup) {
+            if (!isset($ast[$segCount])) {
+                $ast[$segCount] = [];
+            }
+
+            // Inner loop respects the bitmask-sorted order ($b['score'] <=> $a['score'])
+            foreach ($routesGroup as $routeData) {
+                $routeStr = $routeData['route'];
+                $segments = $routeData['segments'];
+
+                if ($segCount === 0 && $routeStr === '/') {
+                    $ast[0]['/'] = [
+                        'segment_value' => '/',
+                        'is_parameter'  => false,
+                        'goto'          => $routeStr,
+                        'route_comment' => "// $method /",
+                        'children'      => []
+                    ];
+                    continue;
+                }
+                $currentNode = &$ast[$segCount];
+                foreach ($segments as $index => $segment) {
+                    $isParam = str_starts_with($segment, ':');
+                    // Group dynamic parameters under a unified ':PARAM' key
+                    // so static segments always take priority over dynamic ones at each depth
+                    $nodeKey = $segment;
+                    if (!isset($currentNode[$nodeKey])) {
+                        $currentNode[$nodeKey] = [
+                            'segment_value' => $segment,
+                            'is_parameter'  => $isParam,
+                            'param_name'    => $isParam ? ltrim($segment, ':') : null,
+                            'goto'          => null,
+                            'route_comment' => null,
+                            'children'      => []
+                        ];
+                    }
+                    if ($index === ($segCount - 1)) {
+                        $currentNode[$nodeKey]['goto']          = $routeStr;
+                        $currentNode[$nodeKey]['route_comment'] = "// $method $routeStr";
+                    }
+                    $currentNode = &$currentNode[$nodeKey]['children'];
+                }
+                unset($currentNode);
+            }
+        }
+
+        return $ast;
+    }
     /**
      * Calculates Binary Specificity Score for routes under a single HTTP method.
      * Segment counts take priority; binary masks break ties (Static = 1, Dynamic = 0).
@@ -10924,56 +11105,7 @@ class FunkPHPC
         });
         return $processed;
     }
-    /**
-     * Builds intermediate AST tree grouped by segment count and path segments.
-     */
-    private function compile_build_route_ast(array $preparedRoutes, string $method): array
-    {
-        $ast = [];
-        $method = strtoupper($method);
-        foreach ($preparedRoutes as $routeData) {
-            $segCount = $routeData['segment_count'];
-            $routeStr = $routeData['original_route'];
-            $trimmed  = trim($routeStr, '/');
-            if ($trimmed === '' && $segCount === 0) {
-                $ast[0]['/'] = [
-                    'segment_value' => '/',
-                    'is_parameter'  => false,
-                    'route_target'  => '/',
-                    'route_comment' => "//$method /",
-                    'config'        => $routeData['config'],
-                    'children'      => []
-                ];
-                continue;
-            }
-            $segments = explode('/', $trimmed);
-            if (!isset($ast[$segCount])) {
-                $ast[$segCount] = [];
-            }
-            $currentNode = &$ast[$segCount];
-            foreach ($segments as $index => $segment) {
-                $isParam = str_starts_with($segment, ':');
-                $nodeKey = $segment;
-                if (!isset($currentNode[$nodeKey])) {
-                    $currentNode[$nodeKey] = [
-                        'segment_value' => $segment,
-                        'is_parameter'  => $isParam,
-                        'route_target'  => null,
-                        'config'        => null,
-                        'children'      => []
-                    ];
-                }
-                if ($index === ($segCount - 1)) {
-                    $currentNode[$nodeKey]['route_target'] = $routeStr;
-                    $currentNode[$nodeKey]['route_comment'] = "//$method $routeStr";
-                    $currentNode[$nodeKey]['config']       = $routeData['config'];
-                }
-                $currentNode = &$currentNode[$nodeKey]['children'];
-            }
-            unset($currentNode);
-        }
-        return $ast;
-    }
+
     /**
      * Recursively compiles AST nodes into optimized nested `if` statements with zero runtime overhead.
      */

@@ -3,13 +3,13 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setDebug(true, false, true);
-    // ->setCompileFlag('OUTPUT_OVERRIDE_DEBUG')
-    // ->setCompileFlag('ALLOW_GHOST_ROUTES');
-    //->setNoRouteMatchJSON(["err" => "nothing found"], 404)
-    //->setNoRouteMatchPage('test', 404)
-    //->setNoRouteMatchText("nothing in GLOBAL!")
-    //->setNoRouteMatchCallback('test')
+    ->setCompileFlag('ALLOW_GHOST_ROUTES')
+    ->setDebug(true, false, true)
+    ->setCompileFlag('OUTPUT_OVERRIDE_DEBUG')
+    ->setNoRouteMatchJSON(["err" => "nothing found"], 404)
+    ->setNoRouteMatchPage('test', 404)
+    ->setNoRouteMatchText("nothing in GLOBAL!")
+    ->setNoRouteMatchCallback('test');
     //->setCustomExceptionHandler('test')
     // //->setDisablePostResponseOnNoMatch(true)
     // //->setParamRule('id2', '*')
