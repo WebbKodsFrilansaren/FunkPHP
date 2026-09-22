@@ -1,6 +1,6 @@
 /node_modules/
 .env
-/src/funkphp/config/db_config.php
+/src/funkphp/FunkPHPDeployment.php
 /src/funkphp/config/conns.php
 /src/backups/
 /src/funkphp/vendor/

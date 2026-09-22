@@ -1894,15 +1894,24 @@ function funk_internal_handle_no_no_route_match(&$c)
 }
 
 // Default in-built error page when other pages are not found
-function funk_internal_critical_error_page(&$c, $code = 500, $message = 'No Specific Error Message Provided.', $configuredThisYet = '->setNoRouteMatch')
+function funk_internal_critical_error_page(&$c, $code = 500, $message = 'No Specific Error Message Provided.', $configuredThisYet = '->setNoRouteMatch', $textAfterCode = '')
 {
+    $message = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+    $message = preg_replace('/&lt;br\s*\/?&gt;/i', '<br/>', $message);
+    $message = preg_replace_callback('/`([^`]+)`/', function ($matches) {
+        return '<span style="background-color: #313244; color: #f5c2e7; padding: 0.2rem 0.1rem; border-radius: 4px; font-family: monospace; font-size: 0.7em; border: 1px solid #45475a;">' . $matches[1] . '</span>';
+    }, $message);
     $html = '';
     $html .= '<!DOCTYPE html>';
     $html .= '<html lang="en">';
     $html .= '<head>';
     $html .= '    <meta charset="UTF-8">';
     $html .= '    <meta name="viewport" content="width=device-width, initial-scale=1.0">';
-    $html .= '    <title>' . $code . ' - No Content or Page Found | Have You Configured `' . $configuredThisYet . '` Yet?</title>';
+    if (is_string($textAfterCode) && trim($textAfterCode) !== '') {
+        $html .= '    <title>' . $code . ' - ' . htmlspecialchars($textAfterCode, ENT_QUOTES, 'UTF-8') . '</title>';
+    } else {
+        $html .= '    <title>' . $code . ' - No Content or Page Found | Have You Configured `' . htmlspecialchars($configuredThisYet, ENT_QUOTES, 'UTF-8') . '` Yet?</title>';
+    }
     $html .= '    <style>';
     $html .= '        * { box-sizing: border-box; margin: 0; padding: 0; }';
     $html .= '        body {';
@@ -1911,7 +1920,7 @@ function funk_internal_critical_error_page(&$c, $code = 500, $message = 'No Spec
     $html .= '            font-family: system-ui, -apple-system, sans-serif;';
     $html .= '            display: grid;';
     $html .= '            place-items: center;';
-    $html .= '            min-height: 100vh;';
+    $html .= '            min-height: 100vh; padding:3rem;';
     $html .= '        }';
     $html .= '        .container { text-align: center; padding: 2rem; }';
     $html .= '        h1 {';
@@ -1922,16 +1931,20 @@ function funk_internal_critical_error_page(&$c, $code = 500, $message = 'No Spec
     $html .= '            margin-bottom: 0.5rem;';
     $html .= '        }';
     $html .= '        p {';
-    $html .= '            font-size: 1.25rem;';
+    $html .= '            font-size: 1.25rem; line-height:1.7;';
     $html .= '            color: #a6adc8;';
     $html .= '        }';
     $html .= '    </style>';
     $html .= '</head>';
     $html .= '<body>';
     $html .= '    <div class="container">';
-    $html .= '        <h1>' . $code . '</h1>';
-    $html .= '        <p>' . $message . '</p>';
-    $html .= '    </div>';
+    if (is_string($textAfterCode) && trim($textAfterCode) !== '') {
+        $html .= '<h1>' . $code . ' - ' . htmlspecialchars($textAfterCode, ENT_QUOTES, 'UTF-8') . '</h1>';
+    } else {
+        $html .= '<h1>' . $code . '</h1>';
+    }
+    $html .= '<p>' . $message . '</p>';
+    $html .= '</div>';
     $html .= '</body>';
     $html .= '</html>';
     return $html;
