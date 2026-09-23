@@ -2,7 +2,7 @@
 
 /**
  * FunkPHPDeployment File
- * Built: 2026-09-23 10:27:29
+ * Built: 2026-09-23 12:05:46
  * Compiler Flags: `ALLOW_GHOST_ROUTES`, `OUTPUT_OVERRIDE_DEBUG`
  * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING
  */
@@ -1193,6 +1193,13 @@ namespace funkphp\classes {
     }
 }
 
+namespace funkphp\pipes\request {
+    function req_test(&$c)
+    {
+        echo "<br/>YO TEST FROM req_test (should run in Request stage)";
+    }
+}
+
 namespace funkphp\pipes\routes\test {
     function test(&$c)
     {
@@ -1233,6 +1240,7 @@ namespace {
         unset($spoofedMethod);
     }
     [$c['req']['accept_order'], $c['req']['prefers']] = \funk_internal_negotiate_content($c);
+    \funkphp\pipes\request\req_test($c);
     if (!in_array($c['req']['method'], ['GET'], true)) {
         FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO:
         switch (($c['req']['prefers'] ?? 'html')) {
@@ -1302,7 +1310,7 @@ namespace {
                 case '/test/id2/id3':
                     goto FUNKPHP_ROUTE_GET_TEST_ID2_ID3;
                 case '/test/test-2':
-                    goto FUNKPHP_ROUTE_GET_TEST_TESTD__2;
+                    goto FUNKPHP_ROUTE_GET_TEST_TESTd__2;
             }
             switch ($SEGS_COUNT) {
                 case 2:
@@ -1317,9 +1325,9 @@ namespace {
     FUNKPHP_GET_SEGS_2:
     if (\strcasecmp($SEGS[0], 'test') === 0) {
         if (\strcasecmp($SEGS[1], 'test-2') === 0) {
-            goto FUNKPHP_ROUTE_GET_TEST_TESTD__2;
+            goto FUNKPHP_ROUTE_GET_TEST_TESTd__2;
         }
-        goto FUNKPHP_ROUTE_GET_TEST_P__ID2;
+        goto FUNKPHP_ROUTE_GET_TEST_p__ID2;
     }
     goto FUNKPHP_NO_ROUTE_MATCH_GET;
     FUNKPHP_GET_SEGS_3:
@@ -1328,9 +1336,19 @@ namespace {
             if (\strcasecmp($SEGS[2], 'id3') === 0) {
                 goto FUNKPHP_ROUTE_GET_TEST_ID2_ID3;
             }
-            goto FUNKPHP_ROUTE_GET_TEST_ID2_P__ID3;
+            goto FUNKPHP_ROUTE_GET_TEST_ID2_p__ID3;
         }
-        goto FUNKPHP_ROUTE_GET_TEST_P__ID2_P__ID3;
+        goto FUNKPHP_ROUTE_GET_TEST_p__ID2_p__ID3;
     }
     goto FUNKPHP_NO_ROUTE_MATCH_GET;
+    FUNKPHP_ROUTE_GET_TEST_p__ID2:
+    exit;
+    FUNKPHP_ROUTE_GET_TEST_p__ID2_p__ID3:
+    exit;
+    FUNKPHP_ROUTE_GET_TEST_ID2_p__ID3:
+    exit;
+    FUNKPHP_ROUTE_GET_TEST_ID2_ID3:
+    exit;
+    FUNKPHP_ROUTE_GET_TEST_TESTd__2:
+    exit;
 }

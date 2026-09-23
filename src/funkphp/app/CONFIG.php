@@ -9,7 +9,7 @@ $APP->CONFIG()
     ->setNoRouteMatchJSON(["err" => "nothing found"], 404)
     ->setNoRouteMatchPage('test', 404)
     ->setNoRouteMatchText("nothing in GLOBAL!")
-    ->setNoRouteMatchCallback('test');
+    ->setNoRouteMatchCallback('test')
     //->setCustomExceptionHandler('test')
     // //->setDisablePostResponseOnNoMatch(true)
     // //->setParamRule('id2', '*')
@@ -29,5 +29,5 @@ $APP->CONFIG()
     // //->setHeaderAdd('Allow', 'all')
     // ->pipeMiddlewares('log_access', 'auth')
     // ->setRateLimit(60, 60, 'ip', 'redis')
-    // ->pipeRequestFunction('req_test')
+    ->pipeRequestFunction('req_test');
     // ->pipePostResponseFunction('debug');

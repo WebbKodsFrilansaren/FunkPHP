@@ -10119,7 +10119,6 @@ class FunkPHPC
                 . var_export($this->compiled['config']['ratelimit']['driver'], true)
                 . ");\n";
         }
-
         // **HERE GOTO LABELS:-based ROUTE MATCHING BEGINS!!!**
         $VALID_METHODS = $this->exportShortSyntax(array_keys(($this->compiled['routes']['trie'] ?? [])));
         $SKIP_POST_RESPONSE_IF_STRING = "\$c['runtime']['SKIP_POST_RESPONSE'] = true;\n";
@@ -10436,7 +10435,6 @@ class FunkPHPC
             }
         }
         $FUNK_DEPLOY_ARR[] = "}\n";
-
         // EARLY EDGE-CASE: No Routes Configured, so Output File gets just
         if (isset($c['runtime']['NO_ROUTES']) && $c['runtime']['NO_ROUTES'] === true) {
             $FUNK_DEPLOY_ARR[] = "\$c['runtime']['SKIP_POST_RESPONSE'] = true;\n";
@@ -10599,13 +10597,9 @@ class FunkPHPC
                     if ($segCount === 0 || isset($SEGS_USED[$astMethod][$segCount])) {
                         continue;
                     }
-                    // 1. Emit label for this method & segment count
                     $FUNK_DEPLOY_ARR[] = "FUNKPHP_{$astMethod}_SEGS_{$segCount}:";
-                    // 2. Recursively generate all nested static/parameter AST lines
                     $astLines = $this->compile_build_ast_code($astNodes, 0);
-                    // 3. Flatten AST code lines directly into the deployment buffer
                     $FUNK_DEPLOY_ARR = array_merge($FUNK_DEPLOY_ARR, $astLines);
-                    // 4. Append the method fallback target at the end of this segment length
                     if (isset($this->compiled['methods'][$astMethod]['NO_ROUTE_MATCH'])) {
                         $FUNK_DEPLOY_ARR[] = "goto FUNKPHP_NO_ROUTE_MATCH_{$astMethod};";
                     } else {
@@ -10615,6 +10609,22 @@ class FunkPHPC
             }
         }
         // **HERE GOTO LABELS:-based ROUTE MATCHING ENDS!!!**
+        // **HERE ARE THE ACTUAL ROUTE LABELS WITH THEIR LOGIC!!!**
+        foreach ($this->compiled['routes'] as $routeMethod => $singleMethodRoute) {
+            if (in_array($routeMethod, [
+                'trie',
+                'trie_metadata',
+                'goto_score_tree',
+                'goto_ast_tree'
+            ], true)) {
+                continue;
+            }
+            foreach ($singleMethodRoute as $routeURI => $routeData) {
+                $FUNK_DEPLOY_ARR[] = $routeData['goto'] . ":\n";
+
+                $FUNK_DEPLOY_ARR[] = "exit;\n";
+            }
+        }
         // CLOSE namespace GLOBAL "namespace {"
         $FUNK_DEPLOY_ARR[] = "}\n";
 
@@ -10993,10 +11003,11 @@ class FunkPHPC
         if (!str_contains($route, ':') && !str_contains($route, '/') && !str_contains($route, '-')) {
             return strtoupper($route);
         }
-        $encoded = str_replace(':', 'p__', $route);
+        $encoded = strtoupper($route);
+        $encoded = str_replace(':', 'p__', $encoded);
         $encoded = str_replace('-', 'd__', $encoded);
         $encoded = str_replace('/', '_', $encoded);
-        return strtoupper($encoded);
+        return $encoded;
     }
     function compile_build_route_scores(array $routesForMethod): array
     {
@@ -11086,7 +11097,6 @@ class FunkPHPC
     private function compile_build_ast_code(array $nodes, int $segIndex = 0): array
     {
         $lines = [];
-        // Guarantee static literal matches are evaluated before unconditional parameter branches
         usort($nodes, static function ($a, $b) {
             return ($a['is_param'] ? 1 : 0) <=> ($b['is_param'] ? 1 : 0);
         });
