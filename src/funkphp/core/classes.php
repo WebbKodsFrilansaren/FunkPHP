@@ -2362,7 +2362,7 @@ class FunkPHPC
             'InvalidHttpStatusCode'                     => "Invalid Integer Value in {$optionalCtx} must be a `Valid Integer HTTP(S) Status Code` between `100-599`.",
             'JsonEncodingFailedNoData'                        => "Data Serialization to JSON Failed in {$optionalCtx} because no Input/Data were passed to it.",
             'JsonEncodingFailed'                        => "Data Serialization to JSON Failed in {$optionalCtx}. Review the passed Input to it.",
-            'RouteIsInvalidMustBecomeValidBeforeWhat' => "Invalid Route being applied with {$optionalCtx}. Route must first become Valid.",
+            'RouteIsInvalidMustBecomeValidBeforeWhat' => "Invalid Route being applied with {$optionalCtx}. This will first be validated after the Route is Valid (read below for how).<br/><br/>A Valid Route:<br/>- only uses lowercased letters, digits 0-9, simple dashes `-`, underscores `_`, and colon `:` to indicate dynamic/param segment<br/>- always starts with `/` (use single one to indicate root of Method) while never ending with it (e.g. `(/segment/`)<br/>- never uses consecutive `-`, `_` or trailing, or after one another (e.g. `/segment-_`, `/-segment_`, `/segment--segment`, `/segment__segment`)<br/>- uses colon `:` to indicate dynamic/param segment must always be after each `/` and before any letter, digit, dash and/or underscore while still following the rules for dashes and underscores (e.g. `/:param`, `/static/:dynamic`, `/static/:param-dynamic_here`)<br/>- has no duplicate dynamic/param segments anywhere (e.g. `/:param1/:param1`, `/:dynamic/:param/:dynamic`)<br/>- has no Conflicting Params between Routes (even over Methods) meaning using same Param Names on the same level of URI Segment when previous URI Segment is also the same. For example: `GET/users/:id` and `GET/users/:id2` is NOT OK while `GET/users/:id` and `GET/user/:id` is OK because latter couple one has `user` as URI Segment before different Param Segment compared to the first couple which does not. It is the first defined Route (via `->ROUTE()`) in the order you have Methods arranged in `\$routeFiles` in `/src/funkphp/app/app.php` that sets the Param Name all other Routes with the same preceding Static Segment must follow<br/>- matches the regex: `/^(?!.*[-_]{2,})(?:\/|(?:\/[:]?[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)+)$/`",
             'InvalidCompilerFlag' => "Invalid Compiler Flag in {$optionalCtx}: must be one of the following: ",
             'InvalidJSONSourceForResponseCtx' => "Invalid JSON Data Source Syntax in {$optionalCtx}: use only `[a-zA-Z0-9-_.]` characters. 'YourKey' after `json:` will then be used in `\$c['d']['YourKey']` as the Final Data Source ",
             'InvalidAcceptContentValue' => "Invalid Content Accept Value in {$optionalCtx}: It must have the structure of `mime_type:shorthand` (e.g.`application/json:json`). Remember that `*/*` cannot be used/set. Characters before `/` are `[a-z0-9-]` and after `[+a-z0-9-.]` and the only `[a-z]` after the single colon (`:`).",
@@ -5588,7 +5588,7 @@ class FunkPHPC
                     if (isset($this->cached['placeholderParamContexts'][$contextKey])) {
                         $lockedParamName = $this->cached['placeholderParamContexts'][$contextKey]['param'];
                         if ($lockedParamName !== $paramName) {
-                            $this->setErr($this->getErr('ConflictRouteParam', $ctxVals) . " Parameter `:{$paramName}` conflicts with Locked Parameter `:{$lockedParamName}` first defined in `{$this->cached['placeholderParamContexts'][$contextKey]['first']}`. Either Standardize `{$paramName}` across both routes OR if you want the OTHER Route to be considered the `First defined with {$paramName}`, you will need to swap their File Inclusions in `/src/funkphp/core/app.php` (`\$routeFiles`). Default order: `GET => POST => PUT => PATCH => DELETE`. FunkPHP treats `URI Segments` as `Dynamic Folder Levels`, so a given folder depth can only have one dynamic parameter name (e.g. `[id]` but not both `[id]` and `[name]`). Use `ROUTE()->setParamRulePolymorphic()` to match Multiple Data Types (e.g. `numeric IDs` AND `string Usernames`).", 'Conflicting Params between Routes ' . $ctxVals, $method, $route);
+                            $this->setErr($this->getErr('ConflictRouteParam', $ctxVals) . " Parameter `:{$paramName}` conflicts with First Defined/Locked Parameter `:{$lockedParamName}` first defined in `{$this->cached['placeholderParamContexts'][$contextKey]['first']}`. They Conflict because they have both the same preceding Static Segment before the different Param Names. EITHER:<br/><br/>Standardize `{$paramName}` across both Routes OR if you want the OTHER Route to be considered the `First Defined/Locked with '{$paramName}'`, you will need to swap their File Inclusions in `\$routeFiles` in `/src/funkphp/app/app.php`. Default order when project is first created/reset: `GET => POST => PUT => PATCH => DELETE`.<br/><br/>FunkPHP treats `URI Segments` as `Dynamic Folder Levels`, so a given Folder Depth can ONLY have One Dynamic Parameter Name (e.g. `[id]` but not both `[id]` and `[name]`).<br/><br/>Use `->setParamRulePolymorphic()` on the Route where you want to match Multiple Data Types (e.g. `numeric IDs` AND `string Usernames`) if the reason was that you wanted to be able to use/parse/validate different Param Types on the same URI Segment Level with the same Preceding Static Segment.", 'Conflicting Params between Routes ' . $ctxVals, $method, $route);
                             $this->invalidBatches['routes'][$method][$route] = true;
                             return;
                         }
@@ -5643,6 +5643,7 @@ class FunkPHPC
             'csp' => null,
             'nonces' => null,
             'excludeHeaders' => null,
+            'goto' => 'FUNKPHP_ROUTE_' . $method . $this->compile_upper_transform_route($route),
         ];
     }
 
@@ -9702,6 +9703,8 @@ class FunkPHPC
                         }
                     }
                     $this->compiled['routes'][$method][$route]['response'] = $this->validBatches['routes'][$method][$route]['response'];
+                    // STEP 11.8: Add 'goto' for Route; used for flattened goto compiling
+                    $this->compiled['routes'][$method][$route]['goto'] = $this->validBatches['routes'][$method][$route]['goto'];
                     // END OF Current $route Iteration!
                 }
                 // Any Param Rules for Current $method that were NEVER used by Any of its $route(s)?
@@ -9725,8 +9728,13 @@ class FunkPHPC
                 );
             }
             // STEP 11.7: Build `routes` - generate final metadata for trie
-            // which is very useful when building flattened route matching
+            // which is very useful when building flattened route matching;
+            // also prepare score-based Route AST-building for Build version.
             $this->compile_build_trie_metadata();
+            foreach ($this->compiled['routes']['trie'] as $tMethod => $_) {
+                $this->compiled['routes']['goto_score_tree'][$tMethod] = $this->compile_build_route_scores(array_keys($this->compiled['routes'][$tMethod]));
+                $this->compiled['routes']['goto_ast_tree'][$tMethod] = $this->compile_build_route_ast($this->compiled['routes']['goto_score_tree'][$tMethod], $tMethod);
+            }
         }
         // STEP 11.8: Populate the $c Variable (only relevant if it then
         // runs locally though) via global access
@@ -10454,7 +10462,9 @@ class FunkPHPC
         $FUNK_DEPLOY_ARR[] = "goto $GOTO_STR_NO_MATCH_GLOBAL_AND_FALLBACK;\n";
         $FUNK_DEPLOY_ARR[] = "}\n";
         // Prepare static routes that can be matched O(1) if all segments lowercased
+        // Also store any SegCount that only has one route so it is not duplicated later.
         $STATIC_ROUTES = [];
+        $SEGS_USED = [];
         foreach ($TRIE as $TRIE_M => $TRIE_D) {
             if ($TRIE_M === '<ALL>') {
                 continue;
@@ -10466,9 +10476,10 @@ class FunkPHPC
                 }
             }
         }
+        // HERE ACTUAL GOTO LABELS:-madness begin for real!
         // Helper function to output online if strcasecmp() check when method has only one route
         $URI_SEG_IF_GENERATOR = function (string $method, string $uri) {
-            $routeGoto = "FUNKPHP_ROUTE_" . $method . $this->compile_upper_transform_route($uri);
+            $routeGoto = $this->compiled['routes'][$method][$uri]['goto'];
             $conditions = [];
             $trimmedUri  = trim($uri, '/');
             $segs = $trimmedUri === '' ? [] : explode('/', $trimmedUri);
@@ -10493,8 +10504,8 @@ class FunkPHPC
         if (!empty($this->compiled['routes']['trie'])) {
             $FUNK_DEPLOY_ARR[] = "switch ((\$c['req']['method'] ?? 'GET')) {\n";
             foreach ($this->compiled['routes']['trie'] as $methodName => $_) {
-                $this->compiled['routes']['goto_score_tree'][$methodName] = $this->compile_score_routes_by_method(array_keys($this->compiled['routes'][$methodName]));
-                $this->compiled['routes']['goto_ast_tree'][$methodName] = $this->compile_build_route_ast($this->compiled['routes']['goto_score_tree'][$methodName], $methodName);
+                // $this->compiled['routes']['goto_score_tree'][$methodName] = $this->compile_score_routes_by_method(array_keys($this->compiled['routes'][$methodName]));
+                // $this->compiled['routes']['goto_ast_tree'][$methodName] = $this->compile_build_route_ast($this->compiled['routes']['goto_score_tree'][$methodName], $methodName);
                 $FUNK_DEPLOY_ARR[] = "case '{$methodName}':\n";
                 if (isset($this->compiled['methods'][$methodName]['ratelimit'])) {
                     $mConfig = $this->compiled['methods'][$methodName]['ratelimit'];
@@ -10558,7 +10569,15 @@ class FunkPHPC
                             isset($TRIE[$methodName]['RouteCOUNTByURINumber'][$TRIE_URICaseCount])
                             && count($TRIE[$methodName]['RouteCOUNTByURINumber'][$TRIE_URICaseCount]) === 1
                         ) {
+                            $SEGS_USED[$methodName][$TRIE_URICaseCount] = true;
                             $FUNK_DEPLOY_ARR[] = $URI_SEG_IF_GENERATOR($methodName, $TRIE[$methodName]['RouteCOUNTByURINumber'][$TRIE_URICaseCount][0]);
+                            $FUNK_DEPLOY_ARR[] = " else {\n";
+                            if (isset($this->compiled['methods'][$methodName]['NO_ROUTE_MATCH'])) {
+                                $FUNK_DEPLOY_ARR[] = "goto FUNKPHP_NO_ROUTE_MATCH_{$methodName};\n";
+                            } else {
+                                $FUNK_DEPLOY_ARR[] = "goto $GOTO_STR_NO_MATCH_GLOBAL_AND_FALLBACK;\n";
+                            }
+                            $FUNK_DEPLOY_ARR[] = "}\n";
                         } else {
                             $FUNK_DEPLOY_ARR[] = "goto FUNKPHP_{$methodName}_SEGS_{$TRIE_URICaseCount};\n";
                         }
@@ -10573,12 +10592,28 @@ class FunkPHPC
                 $FUNK_DEPLOY_ARR[] = "break;\n";
             }
             $FUNK_DEPLOY_ARR[] = "}\n";
-
-            // Now we prepare for Binary=>Dec-based Scoring AST Tree
-            $FUNK_DEPLOY_ARR[] = "echo 'a'\n;";
+            // Now compile output using the built AST Tree for each method
+            foreach ($this->compiled['routes']['goto_ast_tree'] as $astMethod => $astSegCount) {
+                foreach ($astSegCount as $segCount => $astNodes) {
+                    // Skip root route '/' (segCount 0) since static dispatch already resolved it
+                    if ($segCount === 0 || isset($SEGS_USED[$astMethod][$segCount])) {
+                        continue;
+                    }
+                    // 1. Emit label for this method & segment count
+                    $FUNK_DEPLOY_ARR[] = "FUNKPHP_{$astMethod}_SEGS_{$segCount}:";
+                    // 2. Recursively generate all nested static/parameter AST lines
+                    $astLines = $this->compile_build_ast_code($astNodes, 0);
+                    // 3. Flatten AST code lines directly into the deployment buffer
+                    $FUNK_DEPLOY_ARR = array_merge($FUNK_DEPLOY_ARR, $astLines);
+                    // 4. Append the method fallback target at the end of this segment length
+                    if (isset($this->compiled['methods'][$astMethod]['NO_ROUTE_MATCH'])) {
+                        $FUNK_DEPLOY_ARR[] = "goto FUNKPHP_NO_ROUTE_MATCH_{$astMethod};";
+                    } else {
+                        $FUNK_DEPLOY_ARR[] = "goto $GOTO_STR_NO_MATCH_GLOBAL_AND_FALLBACK;\n";
+                    }
+                }
+            }
         }
-        // HERE ACTUAL GOTO LABELS:-madness begin for real!
-
         // **HERE GOTO LABELS:-based ROUTE MATCHING ENDS!!!**
         // CLOSE namespace GLOBAL "namespace {"
         $FUNK_DEPLOY_ARR[] = "}\n";
@@ -10951,16 +10986,19 @@ class FunkPHPC
         exit;
     }
 
-    // Transforms "/users/:id" to "_USERS__ID" (used for GOTO labels generating)
+    // Transforms "/users/:id" to "_users_p__ID" (used for GOTO labels generating)
+    // uses double __ since that can NEVER be inside of a Route URI when compiling so
     private function compile_upper_transform_route(string $route): string
     {
-        if (!str_contains($route, ':') && !str_contains($route, '/')) {
+        if (!str_contains($route, ':') && !str_contains($route, '/') && !str_contains($route, '-')) {
             return strtoupper($route);
         }
-        return str_replace([':', '/', '-'], '_', strtoupper($route));
+        $encoded = str_replace(':', 'p__', $route);
+        $encoded = str_replace('-', 'd__', $encoded);
+        $encoded = str_replace('/', '_', $encoded);
+        return strtoupper($encoded);
     }
-
-    function compile_score_routes_by_method(array $routesForMethod): array
+    function compile_build_route_scores(array $routesForMethod): array
     {
         $groupedByCount = [];
         foreach ($routesForMethod as $routeStr) {
@@ -10974,18 +11012,14 @@ class FunkPHPC
                 ];
                 continue;
             }
-
             $segments = explode('/', $trimmed);
             $segCount = count($segments);
             $bits = [];
-
             foreach ($segments as $segment) {
                 $bits[] = str_starts_with($segment, ':') ? '0' : '1';
             }
-
             $binaryMask = implode('', $bits);
             $score      = bindec($binaryMask);
-
             $groupedByCount[$segCount][] = [
                 'route'    => $routeStr,
                 'segments' => $segments,
@@ -10993,14 +11027,11 @@ class FunkPHPC
                 'score'    => $score,
             ];
         }
-
-        // Sort every segment group highest score first (Static > Dynamic)
         foreach ($groupedByCount as $segCount => &$routesGroup) {
             usort($routesGroup, function ($a, $b) {
                 return $b['score'] <=> $a['score'];
             });
         }
-
         return $groupedByCount;
     }
 
@@ -11010,25 +11041,18 @@ class FunkPHPC
     private function compile_build_route_ast(array $preparedRoutes, string $method): array
     {
         $ast = [];
-        $method = strtoupper($method);
-
-        // Outer loop iterates through each segment length group
         foreach ($preparedRoutes as $segCount => $routesGroup) {
             if (!isset($ast[$segCount])) {
                 $ast[$segCount] = [];
             }
-
-            // Inner loop respects the bitmask-sorted order ($b['score'] <=> $a['score'])
             foreach ($routesGroup as $routeData) {
                 $routeStr = $routeData['route'];
                 $segments = $routeData['segments'];
-
                 if ($segCount === 0 && $routeStr === '/') {
                     $ast[0]['/'] = [
-                        'segment_value' => '/',
-                        'is_parameter'  => false,
-                        'goto'          => $routeStr,
-                        'route_comment' => "// $method /",
+                        'segment' => '/',
+                        'is_param'  => false,
+                        'goto'          => $this->compiled['routes'][$method][$routeStr]['goto'],
                         'children'      => []
                     ];
                     continue;
@@ -11036,125 +11060,74 @@ class FunkPHPC
                 $currentNode = &$ast[$segCount];
                 foreach ($segments as $index => $segment) {
                     $isParam = str_starts_with($segment, ':');
-                    // Group dynamic parameters under a unified ':PARAM' key
-                    // so static segments always take priority over dynamic ones at each depth
                     $nodeKey = $segment;
                     if (!isset($currentNode[$nodeKey])) {
                         $currentNode[$nodeKey] = [
-                            'segment_value' => $segment,
-                            'is_parameter'  => $isParam,
-                            'param_name'    => $isParam ? ltrim($segment, ':') : null,
+                            'segment' => $segment,
+                            'is_param'  => $isParam,
+                            'param'    => $isParam ? ltrim($segment, ':') : null,
                             'goto'          => null,
-                            'route_comment' => null,
                             'children'      => []
                         ];
                     }
                     if ($index === ($segCount - 1)) {
-                        $currentNode[$nodeKey]['goto']          = $routeStr;
-                        $currentNode[$nodeKey]['route_comment'] = "// $method $routeStr";
+                        $currentNode[$nodeKey]['goto'] = $this->compiled['routes'][$method][$routeStr]['goto'];
                     }
                     $currentNode = &$currentNode[$nodeKey]['children'];
                 }
                 unset($currentNode);
             }
         }
-
         return $ast;
     }
     /**
-     * Calculates Binary Specificity Score for routes under a single HTTP method.
-     * Segment counts take priority; binary masks break ties (Static = 1, Dynamic = 0).
-     */
-    private function compile_prepare_binary_specificity(array $routes): array
-    {
-        $processed = [];
-        foreach ($routes as $routeStr => $routeConfig) {
-            $trimmed = trim($routeStr, '/');
-            if ($trimmed === '') {
-                $processed[] = [
-                    'original_route' => '/',
-                    'segment_count'  => 0,
-                    'binary_mask'    => '1',
-                    'binary_score'   => 1,
-                    'config'         => $routeConfig,
-                ];
-                continue;
-            }
-            $segments = explode('/', $trimmed);
-            $segmentCount = count($segments);
-            $binaryMask = '';
-            foreach ($segments as $segment) {
-                $binaryMask .= str_starts_with($segment, ':') ? '0' : '1';
-            }
-            $processed[] = [
-                'original_route' => $routeStr,
-                'segment_count'  => $segmentCount,
-                'binary_mask'    => $binaryMask,
-                'binary_score'   => bindec($binaryMask),
-                'config'         => $routeConfig,
-            ];
-        }
-        // Sort: Segment count DESC -> Binary score DESC
-        usort($processed, function ($a, $b) {
-            if ($a['segment_count'] !== $b['segment_count']) {
-                return $b['segment_count'] <=> $a['segment_count'];
-            }
-            return $b['binary_score'] <=> $a['binary_score'];
-        });
-        return $processed;
-    }
-
-    /**
      * Recursively compiles AST nodes into optimized nested `if` statements with zero runtime overhead.
      */
-    private function compile_generate_ast_code(array $nodes, int $segIndex = 0, int $indent = 1): string
+    private function compile_build_ast_code(array $nodes, int $segIndex = 0): array
     {
-        $code = "";
-        $pad = str_repeat("    ", $indent);
-        // Sort nodes so absolute static matches are checked BEFORE parameter nodes at the same level
-        usort($nodes, function ($a, $b) {
-            return ($a['is_parameter'] ? 1 : 0) <=> ($b['is_parameter'] ? 1 : 0);
+        $lines = [];
+        // Guarantee static literal matches are evaluated before unconditional parameter branches
+        usort($nodes, static function ($a, $b) {
+            return ($a['is_param'] ? 1 : 0) <=> ($b['is_param'] ? 1 : 0);
         });
         foreach ($nodes as $node) {
-            if ($node['is_parameter']) {
-                $paramName = ltrim($node['segment_value'], ':');
-                $code .= "{$pad}\$c['req']['params']['{$paramName}'] = \$segs[{$segIndex}];\n";
-                if ($node['route_target']) {
-                    $code .= "{$pad}// MATCHED_ROUTE: {$node['route_comment']}\n";
-                    $code .= $this->compile_emit_route_execution($node, $indent);
+            if (isset($this->compileFlags['DEBUG_MORE'])) {
+                $lines[] = "\$c['req']['debug']['routing'][] = 'Matching Route Segment: ' . \$node['segment'];";
+            }
+            if ($node['is_param']) {
+                // Unconditional parameter branch (No 'if' needed, so no '}' needed)
+                if (!empty($node['goto'])) {
+                    if (isset($this->compileFlags['DEBUG_MORE'])) {
+                        $lines[] = "\$c['req']['debug']['routing'][] = 'Found Route: ' . \$node['target'];";
+                    }
+                    $lines[] = "goto {$node['goto']};";
                 }
                 if (!empty($node['children'])) {
-                    $code .= $this->compile_generate_ast_code($node['children'], $segIndex + 1, $indent);
+                    $lines = array_merge(
+                        $lines,
+                        $this->compile_build_ast_code($node['children'], $segIndex + 1)
+                    );
                 }
             } else {
-                $code .= "{$pad}if (\\strcasecmp(\$segs[{$segIndex}], '{$node['segment_value']}') === 0) {\n";
-                if ($node['route_target']) {
-                    $code .= "{$pad}    // MATCHED_ROUTE: {$node['route_comment']}\n";
-                    $code .= $this->compile_emit_route_execution($node, $indent + 1);
+                // Conditional static match (Requires 'if' wrapper and closing '}')
+                $escapedValue = var_export($node['segment'], true);
+                $lines[] = "if (\\strcasecmp(\$SEGS[{$segIndex}], {$escapedValue}) === 0) {";
+                if (!empty($node['goto'])) {
+                    if (isset($this->compileFlags['DEBUG_MORE'])) {
+                        $lines[] = "\$c['req']['debug']['routing'][] = 'Found Route: ' . \$node['target'];";
+                    }
+                    $lines[] = "goto {$node['goto']};";
                 }
                 if (!empty($node['children'])) {
-                    $code .= $this->compile_generate_ast_code($node['children'], $segIndex + 1, $indent + 1);
+                    $lines = array_merge(
+                        $lines,
+                        $this->compile_build_ast_code($node['children'], $segIndex + 1)
+                    );
                 }
-                $code .= "{$pad}}\n";
+                $lines[] = "}";
             }
         }
-        return $code;
-    }
-    /**
-     * Emits pipeline execution calls (Middlewares -> Pipe Handler -> Post Response) when a route matches.
-     */
-    private function compile_emit_route_execution(array $node, int $indent): string
-    {
-        $pad = str_repeat("    ", $indent);
-        $out = "";
-        // Emit route pipeline dispatch execution
-        $out .= "{$pad}\$c['req']['route'] = '{$node['route_target']}';\n";
-        if (isset($node['config']['handler'])) {
-            $handlerFn = $node['config']['handler'];
-            $out .= "{$pad}\\{$handlerFn}(\$c);\n";
-        }
-        $out .= "{$pad}goto funkphp_post_response_stage;\n";
-        return $out;
+        return $lines;
     }
     // Output the final FunkPHPDeployment.php file (but essentially it can output any file anywhere)
     // It is the non-cli version of cli_crud_folder_php_file_atomic_write()

@@ -2,7 +2,7 @@
 
 /**
  * FunkPHPDeployment File
- * Built: 2026-09-22 13:39:25
+ * Built: 2026-09-23 10:27:29
  * Compiler Flags: `ALLOW_GHOST_ROUTES`, `OUTPUT_OVERRIDE_DEBUG`
  * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING
  */
@@ -1270,12 +1270,27 @@ namespace {
                 exit;
         }
         FUNKPHP_NO_ROUTE_MATCH_GET:
-        goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
+        switch (($c['req']['prefers'] ?? 'html')) {
+            case 'html':
+                \funk_set_header($c, 'content-type', 'text/html');
+                header_remove('content-type');
+                \funk_internal_send_headers($c);
+                if (!file_exists(ROOT_FOLDER . '/pages/test.php')) {
+                    http_response_code(404);
+                    echo \funk_internal_critical_error_page($c, 404, 'Internal Server Error: Could Not Find Configured \'Not Found\' Page!', '->setNoRouteMatchPage()', 'No Page Found');
+                } else {
+                    http_response_code(404);
+                    include ROOT_FOLDER . '/pages/test.php';
+                }
+                exit;
+            case 'default':
+                goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
+        }
     }
     $URI = $c['req']['uri'] ?? '/';
     $SEGS = ($URI === '/') ? [] : explode('/', trim($URI, '/'));
     $SEGS_COUNT = count($SEGS);
-    if ($SEGS_COUNT > 4) {
+    if ($SEGS_COUNT < 2 || $SEGS_COUNT > 3) {
         unset($URI, $SEGS_COUNT);
         goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
     }
@@ -1284,28 +1299,38 @@ namespace {
         case 'GET':
             \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
             switch ($URI) {
-                case '/':
-                    goto FUNKPHP_ROUTE_GET_;
-                case '/test':
-                    goto FUNKPHP_ROUTE_GET_TEST;
+                case '/test/id2/id3':
+                    goto FUNKPHP_ROUTE_GET_TEST_ID2_ID3;
                 case '/test/test-2':
-                    goto FUNKPHP_ROUTE_GET_TEST_TEST_2;
+                    goto FUNKPHP_ROUTE_GET_TEST_TESTD__2;
             }
             switch ($SEGS_COUNT) {
-                case 1:
-                    goto FUNKPHP_GET_SEGS_1;
                 case 2:
-                    if (strcasecmp($SEGS[0], 'test') === 0 && strcasecmp($SEGS[1], 'test-2') === 0) {
-                        goto FUNKPHP_ROUTE_GET_TEST_TEST_2;
-                    }
-                case 4:
-                    if (strcasecmp($SEGS[0], 'test2') === 0 && strcasecmp($SEGS[3], 'test') === 0) {
-                        goto FUNKPHP_ROUTE_GET_TEST2__ID__ID2_TEST;
-                    }
+                    goto FUNKPHP_GET_SEGS_2;
+                case 3:
+                    goto FUNKPHP_GET_SEGS_3;
                 default:
-                    goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
+                    goto FUNKPHP_NO_ROUTE_MATCH_GET;
             }
             break;
     }
-    echo 'a';
+    FUNKPHP_GET_SEGS_2:
+    if (\strcasecmp($SEGS[0], 'test') === 0) {
+        if (\strcasecmp($SEGS[1], 'test-2') === 0) {
+            goto FUNKPHP_ROUTE_GET_TEST_TESTD__2;
+        }
+        goto FUNKPHP_ROUTE_GET_TEST_P__ID2;
+    }
+    goto FUNKPHP_NO_ROUTE_MATCH_GET;
+    FUNKPHP_GET_SEGS_3:
+    if (\strcasecmp($SEGS[0], 'test') === 0) {
+        if (\strcasecmp($SEGS[1], 'id2') === 0) {
+            if (\strcasecmp($SEGS[2], 'id3') === 0) {
+                goto FUNKPHP_ROUTE_GET_TEST_ID2_ID3;
+            }
+            goto FUNKPHP_ROUTE_GET_TEST_ID2_P__ID3;
+        }
+        goto FUNKPHP_ROUTE_GET_TEST_P__ID2_P__ID3;
+    }
+    goto FUNKPHP_NO_ROUTE_MATCH_GET;
 }
