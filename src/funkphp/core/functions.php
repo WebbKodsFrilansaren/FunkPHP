@@ -1581,6 +1581,7 @@ function funk_internal_negotiate_content(mixed &$c): array
         'audio/wav'                 => 'wav',
         'audio/flac'                => 'flac',
         'video/mp4'                 => 'mp4',
+        'video/mkv'                 => 'mkv',
     ];
     $userCustomAccepts = $c['runtime']['request_accepts'] ?? [];
     $types = [];
