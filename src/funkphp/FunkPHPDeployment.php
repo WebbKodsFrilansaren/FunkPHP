@@ -2,8 +2,8 @@
 
 /**
  * FunkPHPDeployment File
- * Built: 2026-09-23 12:05:46
- * Compiler Flags: `ALLOW_GHOST_ROUTES`, `OUTPUT_OVERRIDE_DEBUG`
+ * Built: 2026-09-24 13:42:51
+ * Compiler Flags: `RESPONSE_EXPLICIT_SET`, `ALLOW_GHOST_ROUTES`, `OUTPUT_OVERRIDE_DEBUG`
  * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING
  */
 
@@ -915,7 +915,7 @@ namespace {
         if (empty(trim($acceptHeader))) {
             return [[], null];
         }
-        $mimeTypeToShortHand = ['text/html' => 'html', 'application/xhtml+xml' => 'xhtml', 'application/json' => 'json', 'text/json' => 'json', 'application/vnd.api+json' => 'jsonapi', 'application/problem+json' => 'jsonproblem', 'application/ld+json' => 'jsonld', 'application/hal+json' => 'jsonhal', 'application/wasm' => 'wasm', 'application/xml' => 'xml', 'application/octet-stream' => 'stream', 'text/xml' => 'xml', 'text/plain' => 'text', 'text/csv' => 'csv', 'text/calendar' => 'calendar', 'text/vcard' => 'vcard', 'text/markdown' => 'markdown', 'image/webp' => 'webp', 'image/avif' => 'avif', 'image/x-icon' => 'ico', 'image/bmp' => 'bmp', 'image/apng' => 'apng', 'image/png' => 'png', 'image/jpeg' => 'jpg', 'image/jpg' => 'jpg', 'image/gif' => 'gif', 'image/tiff' => 'tiff', 'image/heic' => 'heic', 'image/svg+xml' => 'svg', 'audio/mpeg' => 'mp3', 'audio/wav' => 'wav', 'audio/flac' => 'flac', 'video/mp4' => 'mp4',];
+        $mimeTypeToShortHand = ['text/html' => 'html', 'application/xhtml+xml' => 'xhtml', 'application/json' => 'json', 'text/json' => 'json', 'application/vnd.api+json' => 'jsonapi', 'application/problem+json' => 'jsonproblem', 'application/ld+json' => 'jsonld', 'application/hal+json' => 'jsonhal', 'application/wasm' => 'wasm', 'application/xml' => 'xml', 'application/octet-stream' => 'stream', 'text/xml' => 'xml', 'text/plain' => 'text', 'text/csv' => 'csv', 'text/calendar' => 'calendar', 'text/vcard' => 'vcard', 'text/markdown' => 'markdown', 'image/webp' => 'webp', 'image/avif' => 'avif', 'image/x-icon' => 'ico', 'image/bmp' => 'bmp', 'image/apng' => 'apng', 'image/png' => 'png', 'image/jpeg' => 'jpg', 'image/jpg' => 'jpg', 'image/gif' => 'gif', 'image/tiff' => 'tiff', 'image/heic' => 'heic', 'image/svg+xml' => 'svg', 'audio/mpeg' => 'mp3', 'audio/wav' => 'wav', 'audio/flac' => 'flac', 'video/mp4' => 'mp4', 'video/mkv' => 'mkv',];
         $userCustomAccepts = $c['runtime']['request_accepts'] ?? [];
         $types = [];
         $c['req']['accepts']['json'] = false;
@@ -1241,6 +1241,7 @@ namespace {
     }
     [$c['req']['accept_order'], $c['req']['prefers']] = \funk_internal_negotiate_content($c);
     \funkphp\pipes\request\req_test($c);
+    \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
     if (!in_array($c['req']['method'], ['GET'], true)) {
         FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO:
         switch (($c['req']['prefers'] ?? 'html')) {
@@ -1298,7 +1299,7 @@ namespace {
     $URI = $c['req']['uri'] ?? '/';
     $SEGS = ($URI === '/') ? [] : explode('/', trim($URI, '/'));
     $SEGS_COUNT = count($SEGS);
-    if ($SEGS_COUNT < 2 || $SEGS_COUNT > 3) {
+    if ($SEGS_COUNT > 2) {
         unset($URI, $SEGS_COUNT);
         goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
     }
@@ -1307,16 +1308,14 @@ namespace {
         case 'GET':
             \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
             switch ($URI) {
-                case '/test/id2/id3':
-                    goto FUNKPHP_ROUTE_GET_TEST_ID2_ID3;
+                case '/':
+                    goto FUNKPHP_ROUTE_GET_;
                 case '/test/test-2':
                     goto FUNKPHP_ROUTE_GET_TEST_TESTd__2;
             }
             switch ($SEGS_COUNT) {
                 case 2:
                     goto FUNKPHP_GET_SEGS_2;
-                case 3:
-                    goto FUNKPHP_GET_SEGS_3;
                 default:
                     goto FUNKPHP_NO_ROUTE_MATCH_GET;
             }
@@ -1327,28 +1326,27 @@ namespace {
         if (\strcasecmp($SEGS[1], 'test-2') === 0) {
             goto FUNKPHP_ROUTE_GET_TEST_TESTd__2;
         }
-        goto FUNKPHP_ROUTE_GET_TEST_p__ID2;
+        goto FUNKPHP_ROUTE_GET_TEST_p__ID;
     }
     goto FUNKPHP_NO_ROUTE_MATCH_GET;
-    FUNKPHP_GET_SEGS_3:
-    if (\strcasecmp($SEGS[0], 'test') === 0) {
-        if (\strcasecmp($SEGS[1], 'id2') === 0) {
-            if (\strcasecmp($SEGS[2], 'id3') === 0) {
-                goto FUNKPHP_ROUTE_GET_TEST_ID2_ID3;
-            }
-            goto FUNKPHP_ROUTE_GET_TEST_ID2_p__ID3;
-        }
-        goto FUNKPHP_ROUTE_GET_TEST_p__ID2_p__ID3;
-    }
-    goto FUNKPHP_NO_ROUTE_MATCH_GET;
-    FUNKPHP_ROUTE_GET_TEST_p__ID2:
+    FUNKPHP_ROUTE_GET_:
+    $c['req']['route_matched'] = true;
+    $c['req']['route'] = '/';
+    $c['req']['segments'][0] = ['/'];
     exit;
-    FUNKPHP_ROUTE_GET_TEST_p__ID2_p__ID3:
-    exit;
-    FUNKPHP_ROUTE_GET_TEST_ID2_p__ID3:
-    exit;
-    FUNKPHP_ROUTE_GET_TEST_ID2_ID3:
+    FUNKPHP_ROUTE_GET_TEST_p__ID:
+    $c['req']['route_matched'] = true;
+    $c['req']['route'] = $URI;
+    $c['req']['segments'][0] = $SEG[0];
+    $c['req']['segments'][1] = $SEG[1];
+    $c['req']['segments'][2] = $SEG[2];
+    $c['req']['params']['id'] = $SEG[2];
     exit;
     FUNKPHP_ROUTE_GET_TEST_TESTd__2:
+    $c['req']['route_matched'] = true;
+    $c['req']['route'] = $URI;
+    $c['req']['segments'][0] = $SEG[0];
+    $c['req']['segments'][1] = $SEG[1];
+    $c['req']['segments'][2] = $SEG[2];
     exit;
 }

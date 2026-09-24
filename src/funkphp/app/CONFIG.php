@@ -3,6 +3,7 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
+    ->setCompileFlag('RESPONSE_EXPLICIT_SET')
     ->setCompileFlag('ALLOW_GHOST_ROUTES')
     ->setDebug(true, false, true)
     ->setCompileFlag('OUTPUT_OVERRIDE_DEBUG')
@@ -10,6 +11,7 @@ $APP->CONFIG()
     ->setNoRouteMatchPage('test', 404)
     ->setNoRouteMatchText("nothing in GLOBAL!")
     ->setNoRouteMatchCallback('test')
+    ->setRateLimit()
     //->setCustomExceptionHandler('test')
     // //->setDisablePostResponseOnNoMatch(true)
     // //->setParamRule('id2', '*')

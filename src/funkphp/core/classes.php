@@ -2661,7 +2661,6 @@ class FunkPHPC
         $this->FunkPHPFluentAPI['ALL'][count($this->FunkPHPFluentAPI['ALL']) + 1] = "->$method()";
     }
 
-
     /* !!! GLOBAL/CONFIG() BATCHES FUNCTIONS !!! */
     /* setCompileFlag & setDebug */
     private function batchSetCompileFlag(string $flag)
@@ -2672,9 +2671,9 @@ class FunkPHPC
             'IGNORE_USER_DEFINED_CLASSES:',
             'IGNORE_CORE_FUNCTIONS:',
             'OUTPUT_OVERRIDE_DEBUG', // ignore in-built run() when compiling in web
+            'PARAMS_EXPLICIT_SET', // setParamRule() must be used for all routes' params (can be global+method too though)
+            'RESPONSE_EXPLICIT_SET', // ->setResponse() OR ->pipeFunctionsThenResponse() must be used for each Route instead of inlining "funk_return_response_<TYPE>"
             'ALLOW_GHOST_ROUTES', // no error issued when
-            'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE', // pipeResponse() must be applied to every route or hard compilation error.
-            'HIDE_NO_ROUTE_RESPONSE_WARNING', // No warning issued when a Route has no 'response' (no pipeResponse())
             'NO_WARNINGS_ALLOWED', // $this->errors['COMPILATION']['warnings'] must be 0 after compile() is done or compilation fails
             'ONLY_RETURN_COMPILED_PAGES', // pipeResponse() config will ONLY look for compiled pages and error out if not found during config
             'ONLY_RETURN_NONCOMPILED_PAGES' // pipeResponse() config wil ONLY look for non-compiled pages and error out if not found during config
@@ -2699,7 +2698,7 @@ class FunkPHPC
         }
         // Default cases check
         if (!is_string($flag) || trim($flag) === '' || !in_array($flag, $validFlags)) {
-            $this->setErr($this->getErr('InvalidCompilerFlag', $ctxVals) . $this->joinArray($validFlags), 'Duplicate Compiler Flag ' . $ctxVals);
+            $this->setErr($this->getErr('InvalidCompilerFlag', $ctxVals) . $this->joinArray($validFlags), 'Invalid Compiler Flag ' . $ctxVals);
             $this->invalidBatches['config']['compileFlags'][$flag] = true;
             return;
         }
@@ -8524,7 +8523,7 @@ class FunkPHPC
                                     $COMPILE_WARNS = $internalErrors['COMPILATION']['warnings'] ?? [];
                                 ?> <?php if (count($COMPILE_ERRS) > 0): ?>
                                         <div class="tab-group">
-                                            <div class="tab-header">FunkPHP Compilation Errors (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
+                                            <div class="tab-header">FunkPHP Compilation Errors (must be Fixed to Successfully Run and/or Build FunkPHPDeployment.php)</div>
                                             <?php foreach ($COMPILE_ERRS as $idx => $COMP_ERR) {
                                             ?>
                                                 <div class="issue-card">
@@ -8543,7 +8542,7 @@ class FunkPHPC
                                     <?php endif ?>
                                     <?php if (count($COMPILE_WARNS) > 0): ?>
                                         <div class="tab-group">
-                                            <div class="tab-header">FunkPHP Compilation Warnings (happens only if Zero Errors otherwise in all files in /src/funkphp/app)</div>
+                                            <div class="tab-header">FunkPHP Compilation Warnings (might cause Unpredictable Runtime Behavior if not Fixed)</div>
                                             <?php foreach ($COMPILE_WARNS as $idx2 => $COMP_WARN) {
                                             ?>
                                                 <div class="issue-card issue-card-warn">
@@ -9110,7 +9109,7 @@ class FunkPHPC
         // 8.3 Post-Response Pipes
         // ------------------------------------------------------------------------------------------
         if (!isset($this->validBatches['config']['post_response'])) {
-            $this->compile_setWarn("No Post-Response File Functions used", "No Post-Response Pipes (via `->pipePostResponseFunction() in ->CONFIG()` found. If intended to use No Post-Response Pipes, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`), nothing else happens.<br/><br/>`Piped Post-Response Functions` are otherwise executed via the in-built PHP Function `register_shutdown_function()` in the ordered they have been added/piped. This is also why you will get a Fatal Compiling Error if you try to use the `register_shutdown_function()` inside any of your Function Files.");
+            $this->compile_setWarn("No Post-Response File Functions used", "No `Post-Response Functions` (via `->pipePostResponseFunction() in ->CONFIG()`) found. If intentional, just ignore this warning. This means that after each HTTP(S) Request that completes (or via `exit()`), nothing else happens meaning no '`Post-Response Cleanup`' can be done as a result.<br/><br/>Piped `Post-Response Functions` (via `->pipePostResponseFunction() in ->CONFIG()`) are otherwise executed via the in-built PHP Function `register_shutdown_function()` in the ordered they have been added/piped. This is also why you will get a Fatal Compiling Error if you try using the `register_shutdown_function()` inside any of your Function Files (request, middlewares, routes, etc.).");
         }
         // post_response pipes exist
         else {
@@ -9329,10 +9328,12 @@ class FunkPHPC
                             }
                             // Issue warning when no Param Rule found for current Route Param
                             else {
-                                $this->compiled['routes'][$method][$route]['params'][$routeParam] = ['pattern' => '/[^\/]+/', 'default' => null, 'callback' => null, 'implicit' => true];
-                                $this->compiled['routes'][$method][$route]['hasImplicitAlwaysMatchParam'] = true;
-                                $this->cached['placeholderImplicitParams'][$method][$route][] = [$routeParam];
-                                $this->compile_setWarn("No Param Rule Available for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "The following Param `{$routeParam}` in `{$CURRENT_ROUTE_STR}` has no Available Param Rules in Current Route, not in `{$method}`, and not in Global CONFIG. This means that You need to `Parse the Param Manually` using any of your `Route Pipe Function(s)`. If that is exactly what You are doing for `{$CURRENT_ROUTE_STR}`, just ignore this warning.<br/><br/> Default Param Regex `/[^/]+/` has been applied to it so it gets through Param Validation. You will see the Route Key `hasImplicitAlwaysMatchParam` in Debugging/Logging for this Route that means it was automatically added since you must EXPLCITITLY set an Everything-Matches `*` Regex Pattern in order for it to get into Build Version (running locally always works).");
+                                if (isset($this->compileFlags['PARAMS_EXPLICIT_SET'])) {
+                                    $this->compile_setErr("Explicitly Set Param Rule required for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "You have set `->setCompileFlag('PARAMS_EXPLICIT_SET')` in `/src/funkphp/app/CONFIG.php` which requires Explicitly Set Params even if You want them to 'match anything'. This means you MUST Explicitly Set `->setParamRule('$routeParam','*')` (or whatever exact Regex Matching you want to use) to Validate anything besides `/` for the Dynamic Segment in `{$CURRENT_ROUTE_STR}`.<br/><br/> You can use `callback:user_defined_function_name` (function referenced from `/src/funkphp/config/functions.php`) instead of the Regex if you need more complex Param Rule Validation. Your Custom Function must return a `bool` Value, and it can still use your defined Default Value (third argument in `->setParamRule()` if any set) for the Param Rule Name.<br/><br/> Remove that Compiler Flag in `->CONFIG()->setCompileFlag()` in `/src/funkphp/app/CONFIG.php` in order to Validate `{$routeParam}` in `{$CURRENT_ROUTE_STR}` as `/[^/]+/` meaning it matches anything except `/`. If You need multiple Param Rule Validations for the same Param Rule Name use `->setParamRulePolymorphic()` after the `->ROUTE()` for `{$CURRENT_ROUTE_STR}` as it is ONLY Available for Each Specific Route.");
+                                } else {
+                                    $this->compiled['routes'][$method][$route]['params'][$routeParam] = ['pattern' => '/[^\/]+/', 'default' => null, 'callback' => null, 'implicit' => true];
+                                    $this->compile_setWarn("No Explicit Param Rule for `{$routeParam}` in `{$CURRENT_ROUTE_STR}`", "The following Param `{$routeParam}` in `{$CURRENT_ROUTE_STR}` has no Available Param Rules in Current Route, not in `{$method}`, and not in Global CONFIG. This means that You need to `Parse the Param Manually` using any of your `Route Pipe Function(s)`. If that is exactly what You are doing for `{$CURRENT_ROUTE_STR}`, just ignore this warning.<br/><br/> As a result, the Default Param Regex `/[^/]+/` has been applied to `{$routeParam}` in `{$CURRENT_ROUTE_STR}` so it is Param Validated as `true` during Param Validation after Matched Route in the Matched Method. You can still Validate it further in your Route-piped Functions.<br/><br/> If you need to know that Param Rules are Explicitly Set for `{$CURRENT_ROUTE_STR}`, then use the `->setCompileFlag('PARAMS_EXPLICIT_SET')` in `/src/funkphp/app/CONFIG.php` which then requires Explicitly Set Params even if You want them to 'Match Anything'. Use `'*'` as second argument in `->setParamRule()` to transform it to the Regex `/[^/]+/` which 'Matches Anything Except `/`'.");
+                                }
                             }
                         }
                         // Iterate through each param to disallow conflicting param id names
@@ -9687,10 +9688,10 @@ class FunkPHPC
                     // STEP 11.7: Build `routes` - Check for any pipeResponse, it is either something
                     // OR null so just add it anyway but issue a warning when it is null.
                     if (!isset($this->validBatches['routes'][$method][$route]['response'])) {
-                        if (isset($this->compileFlags['ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'])) {
-                            $this->compile_setErr("Response is REQUIRED in Route `{$CURRENT_ROUTE_STR}`", "Compiler Flag `ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE` forces `{$CURRENT_ROUTE_STR}` to have a `->pipeResponse()`.");
-                        } else if (!isset($this->compileFlags['HIDE_NO_ROUTE_RESPONSE_WARNING'])) {
-                            $this->compile_setWarn("No Response in Route `{$CURRENT_ROUTE_STR}`", "The Route `{$CURRENT_ROUTE_STR}` has no `Piped Response` (via `->pipeResponse()`) meaning it must be handled manually inside of Pipe Functions OR the Route `{$CURRENT_ROUTE_STR}` would essentially NOT have a Response to the End-user.<br/><br/> Use `funk_return_response_page()`, `funk_return_response_json()`, `funk_return_response_text()`, `funk_return_response_callback()`, or `funk_return_response_file()` inside any of the referenced Files=>Functions in any of the `->pipeFunction()` in order to fulfill the requirement of returning a Response in the Route `{$CURRENT_ROUTE_STR}`.<br/><br/> Remember that no other `->pipe<TYPE>()` can be used after the `->pipeResponse()` for the Route as it is meant to complete the HTTP(S) Request. For example, trying to `->pipeFunction()` anywhere after `->pipeResponse()` OR `->pipeFunctionsThenResponse()` for `{$CURRENT_ROUTE_STR}` will generate Compile Error.");
+                        if (isset($this->compileFlags['RESPONSE_EXPLICIT_SET'])) {
+                            $this->compile_setErr("Explicitly Set Response is REQUIRED in Route `{$CURRENT_ROUTE_STR}`", "The Set Compiler Flag `RESPONSE_EXPLICIT_SET` forces `{$CURRENT_ROUTE_STR}` to have a Final Response (via `->pipeResponse()` OR `->pipeFunctionsThenResponse()`) in order to complete the HTTP(S) Request before it moves on to (if any) `Post-Response Functions`.<br/><br/> This Set Compiler Flag does NOT take inlined `funk_return_response_page()`, `funk_return_response_json()`, `funk_return_response_text()`, `funk_return_response_callback()`, `funk_return_response_file()` inside any of your Function Files into account and instead explicitly expects `->pipeResponse()` OR `->pipeFunctionsThenResponse()` for `{$CURRENT_ROUTE_STR}`.");
+                        } else {
+                            $this->compile_setWarn("No Explicitly Set Response in Route `{$CURRENT_ROUTE_STR}`", "The Route `{$CURRENT_ROUTE_STR}` has no Explicit Response (via `->pipeResponse()` OR `->pipeFunctionsThenResponse()`) meaning it must be handled manually inside of Pipe Functions OR the Route `{$CURRENT_ROUTE_STR}` would essentially NOT have a Response to the End-user.<br/><br/> Use `funk_return_response_page()`, `funk_return_response_json()`, `funk_return_response_text()`, `funk_return_response_callback()`, or `funk_return_response_file()` inside any of the referenced `Files=>Functions` in `/src/funkphp/pipes/routes` in any of the `->pipeFunction()` in order to fulfill the requirement of returning a Response in the Route `{$CURRENT_ROUTE_STR}`.<br/><br/> Remember that no other `->pipe<TYPE>()` can be used after the `->pipeResponse()` for the Route as it is meant to complete the HTTP(S) Request. For example, trying to `->pipeFunction()` anywhere after `->pipeResponse()` OR `->pipeFunctionsThenResponse()` for `{$CURRENT_ROUTE_STR}` will generate Compile Error.");
                         }
                     } else {
                         if (
@@ -10619,8 +10620,30 @@ class FunkPHPC
             ], true)) {
                 continue;
             }
+            // Logic for each Method=>Route
             foreach ($singleMethodRoute as $routeURI => $routeData) {
+                // Route Label + its URI and any Params to then validate
                 $FUNK_DEPLOY_ARR[] = $routeData['goto'] . ":\n";
+                $FUNK_DEPLOY_ARR[]  = "\$c['req']['route_matched'] = true;\n";
+                $rPARAMS = [];
+                if ($routeURI === '/') {
+                    $FUNK_DEPLOY_ARR[]  = "\$c['req']['route'] = '/';\n";
+                    $FUNK_DEPLOY_ARR[]  = "\$c['req']['segments'][0] = ['/'];\n";
+                } else {
+                    $routeURISplit = explode('/', $routeURI);
+                    $FUNK_DEPLOY_ARR[]  = "\$c['req']['route'] = \$URI;\n";
+                    foreach ($routeURISplit as $rSEGIdx => $rSEG) {
+                        $FUNK_DEPLOY_ARR[]  = "\$c['req']['segments'][$rSEGIdx] = \$SEG[$rSEGIdx];\n";
+                        if (str_starts_with($rSEG, ':')) {
+                            $rPARAMS[] = substr($rSEG, 1);
+                            $FUNK_DEPLOY_ARR[]  = "\$c['req']['params'][" . var_export(substr($rSEG, 1), true) . "] = \$SEG[$rSEGIdx];\n";
+                        }
+                    }
+                }
+                // Logic for validating any params for matched route
+                if (count($rPARAMS) > 0) {
+                }
+
 
                 $FUNK_DEPLOY_ARR[] = "exit;\n";
             }
@@ -11231,7 +11254,7 @@ class FunkPHPConfig
     /**
      * Set Compiler Flags that are applied when compiling. Most of them are about what is allowed or not, whether to ignore certain warnings and/or errors or not.
      *
-     * @param 'IGNORE_USER_DEFINED_CLASSES'|'IGNORE_USER_DEFINED_FUNCTIONS:fn1,fn2,etc'|'IGNORE_CORE_FUNCTIONS:fn1,fn2,etc'|'OUTPUT_OVERRIDE_DEBUG'|'ALLOW_GHOST_ROUTES'|'ALL_ROUTES_MUST_HAVE_PIPE_RESPONSE'|'HIDE_NO_ROUTE_RESPONSE_WARNING'|'NO_WARNINGS_ALLOWED'|'ONLY_RETURN_COMPILED_PAGES'|'ONLY_RETURN_NONCOMPILED_PAGES' $flag Compiler flag (e.g., "NO_WARNINGS_ALLOWED")
+     * @param 'RESPONSE_EXPLICIT_SET'|'PARAMS_EXPLICIT_SET'|'IGNORE_USER_DEFINED_CLASSES'|'IGNORE_USER_DEFINED_FUNCTIONS:fn1,fn2,etc'|'IGNORE_CORE_FUNCTIONS:fn1,fn2,etc'|'OUTPUT_OVERRIDE_DEBUG'|'ALLOW_GHOST_ROUTES'|'NO_WARNINGS_ALLOWED'|'ONLY_RETURN_COMPILED_PAGES'|'ONLY_RETURN_NONCOMPILED_PAGES' $flag Compiler flag (e.g., "NO_WARNINGS_ALLOWED")
      * @return $this
      */
     public function setCompileFlag(string $flag): self
