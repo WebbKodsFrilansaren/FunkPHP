@@ -2405,16 +2405,16 @@ class FunkPHPC
             'DuplicateRouteAliasName'           => "Duplicate Route Alias Name` in {$optionalCtx}. Review/change the already `Valid` Configuration first defined in ",
             'DuplicateCallSessionCookieDueToValidOptionsVersion' => "`Duplicate Setting Session Cookie Call` to {$optionalCtx} due to already being set and `Valid` OR because `->setSessionCookieOptions()` has been used already which sets all Session Cookie Values at once.",
             'DuplicateRouteConflict' => "`Duplicate Route Conflict` in Valid Formatted Route in {$optionalCtx} ",
-            'DuplicateCallInvalid'              => "`Duplicate Call` to {$optionalCtx} with either `Exact Values` OR it can Only be Called Once. Review the already `Invalid` Configuration which is before this Error in the `API Array`.",
-            'DuplicateCallValid'                => "`Duplicate Call` to {$optionalCtx} with either `Exact Values` OR it can Only be Called Once. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
-            'DuplicateCallValidCanOnlyBeSetOnce' => "`Duplicate Valid Call` to {$optionalCtx}: this can only be set once. Review the already `Valid` Configuration which is before this Error in the `API Array`.",
-            'DuplicateCallinValidCanOnlyBeSetOnce' => "`Duplicate Invalid Call` to {$optionalCtx}: this can only be set once. Review the already `Invalid` Configuration which is before this Error in the `API Array`.",
-            'DuplicateCallValidMustBeSetWithDifferentValues' => "`Duplicate Valid Call` to {$optionalCtx}: one or more values must be different in order to use this more than once. Review the already `Valid` Configuration which is before this Error in the `API Array`.",
-            'DuplicateCallInvalidMustBeSetWithDifferentValues' => "`Duplicate Invalid Call` to {$optionalCtx}: one or more values must be different in order to use this more than once. Review the already `Invalid` Configuration which is before this Error in the `API Array`.",
-            'DuplicateRegexInPolymorphic' => "`Duplicate Regex` in {$optionalCtx}:",
-            'DuplicateParamGlobal' => "`Duplicate Global Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
-            'DuplicateParamMethod' => "`Duplicate Method Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
-            'DuplicateParamRoute' => "`Duplicate Route Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API Array`.",
+            'DuplicateCallInvalid'              => "`Duplicate Call` to {$optionalCtx} with either `Exact Values` OR it can Only be Called Once. Review the already `Invalid` Configuration which is before this Error in the `API` Tab.",
+            'DuplicateCallValid'                => "`Duplicate Call` to {$optionalCtx} with either `Exact Values` OR it can Only be Called Once. Review/change the already `Valid` Configuration which is before this Error in the `API` Tab.",
+            'DuplicateCallValidCanOnlyBeSetOnce' => "`Duplicate Valid Call` to {$optionalCtx}: this can only be set once. Review the already `Valid` Configuration which is before this Error in the `API` Tab.",
+            'DuplicateCallinValidCanOnlyBeSetOnce' => "`Duplicate Invalid Call` to {$optionalCtx}: this can only be set once. Review the already `Invalid` Configuration which is before this Error in the `API` Tab.",
+            'DuplicateCallValidMustBeSetWithDifferentValues' => "`Duplicate Valid Call` to {$optionalCtx}: one or more values must be different in order to use this more than once. Review the already `Valid` Configuration which is before this Error in the `API` Tab.",
+            'DuplicateCallInvalidMustBeSetWithDifferentValues' => "`Duplicate Invalid Call` to {$optionalCtx}: one or more values must be different in order to use this more than once. Review the already `Invalid` Configuration which is before this Error in the `API` Tab.",
+            'DuplicateRegexInPolymorphic' => "`Duplicate Param Rule Regex` in {$optionalCtx}:",
+            'DuplicateParamGlobal' => "`Duplicate Global Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API` Tab. Did you target same Global Param Identifier with `->setParamRulePolymorphic()` OR `->setParamRule()` already?",
+            'DuplicateParamMethod' => "`Duplicate Method Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API` Tab. Did you target same Method Param Identifier with `->setParamRulePolymorphic()` OR `->setParamRule()` already?",
+            'DuplicateParamRoute' => "`Duplicate Route Param Rule` in {$optionalCtx}. Review/change the already `Valid` Configuration which is before this Error in the `API` Tab. Did you target same Route Param Identifier with `->setParamRulePolymorphic()` OR `->setParamRule()` already?",
             'DuplicateAcceptContentType' => "`Duplicate Accept Content` in {$optionalCtx}:",
             'ConflictNoneSourceInCSP' => "`Invalid` CSP Configuration in {$optionalCtx}: Source `'none'` must always be used isolated for a given CSP Directive. More than one Source is used.",
             'ConflictRouteParam' => "`Route Parameter in Conflict` in {$optionalCtx}:",
@@ -4268,6 +4268,15 @@ class FunkPHPC
                 ];
                 return;
             }
+            if (isset($defaultParamValueOnRegexMismatch) && !preg_match($regex, $defaultParamValueOnRegexMismatch)) {
+                $this->setErr($this->getErr('InvalidRegexNotMatchDefaultValue', $ctxVals) . " Default Value in `\$defaultParamValueOnRegexMismatch` must Match the Regex Pattern: `{$regex}` in order to use it. Current Default Regex Value does not Match it.", 'Invalid Regex Default Value for Param Rule ' .  $ctxVals);
+                $this->invalidBatches['paramRules']['config'][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
         }
         // Check for duplicate valid rule at global level
         if (isset($this->validBatches['config']['paramRules'][$param])) {
@@ -4311,7 +4320,7 @@ class FunkPHPC
         }
         $allowedDirectives = $this->ALLOWED['csp-directives'];
         if ($directive === '' || !in_array($directive, $allowedDirectives, true)) {
-            $this->setErr($this->getErr('InvalidCSPDirective', $ctxVals) . $this->joinArray($allowedDirectives), 'Invalid CSP Directive ' . $ctxVals);
+            $this->setErr($this->getErr('InvalidCSPDirective', $ctxVals) . $this->joinArray($allowedDirectives) . '. If You want to use a nonce, specify `nonce:name` as a `$source` as a nonce itself is NOT a Directive but a Source Type!', 'Invalid CSP Directive ' . $ctxVals);
             return;
         }
         if (empty($sources)) {
@@ -5182,6 +5191,15 @@ class FunkPHPC
                 ];
                 return;
             }
+            if (isset($defaultParamValueOnRegexMismatch) && !preg_match($regex, $defaultParamValueOnRegexMismatch)) {
+                $this->setErr($this->getErr('InvalidRegexNotMatchDefaultValue', $ctxVals) . " Default Value in `\$defaultParamValueOnRegexMismatch` must Match the Regex Pattern: `{$regex}` in order to use it. Current Default Regex Value does not Match it.", 'Invalid Regex Default Value for Param Rule ' .  $ctxVals, $method);
+                $this->invalidBatches['paramRules']['methods'][$method][$param] = [
+                    'pattern' => $regex,
+                    'default' => $defaultParamValueOnRegexMismatch,
+                    'callback' => null,
+                ];
+                return;
+            }
         }
         // Check for duplicate valid rule at method level
         if (isset($this->validBatches['methods'][$method]['paramRules'][$param])) {
@@ -5224,7 +5242,7 @@ class FunkPHPC
         }
         $allowedDirectives = $this->ALLOWED['csp-directives'];
         if ($directive === '' || !in_array($directive, $allowedDirectives, true)) {
-            $this->setErr($this->getErr('InvalidCSPDirective', $ctxVals) . $this->joinArray($allowedDirectives), 'Invalid CSP Directive ' . $ctxVals, $method);
+            $this->setErr($this->getErr('InvalidCSPDirective', $ctxVals) . $this->joinArray($allowedDirectives) . '. If You want to use a nonce, specify `nonce:name` as a `$source` as a nonce itself is NOT a Directive but a Source Type!', 'Invalid CSP Directive ' . $ctxVals, $method);
             $this->invalidBatches['csp']['methods'][$method][$directive] = $sources;
             return;
         }
@@ -6338,7 +6356,7 @@ class FunkPHPC
         }
         $allowedDirectives = $this->ALLOWED['csp-directives'];
         if ($directive === '' || !in_array($directive, $allowedDirectives, true)) {
-            $this->setErr($this->getErr('InvalidCSPDirective', $ctxVals) . $this->joinArray($allowedDirectives), 'Invalid CSP Directive ' . $ctxVals, $method, $route);
+            $this->setErr($this->getErr('InvalidCSPDirective', $ctxVals) . $this->joinArray($allowedDirectives) . '. If You want to use a nonce, specify `nonce:name` as a `$source` as a nonce itself is NOT a Directive but a Source Type!', 'Invalid CSP Directive ' . $ctxVals, $method, $route);
             return;
         }
         if (empty($sources)) {
@@ -9991,7 +10009,7 @@ class FunkPHPC
             }
             $FUNK_DEPLOY_ARR[] = "}\n";
         }
-        // // LATER: 5.5 Build Validation if any
+        // // LATER TODO: 5.5 Build Validation if any
         if (
             isset($this->cached['placeholderBuildFiles']['validation'])
             && count($this->cached['placeholderBuildFiles']['validation']) > 0
@@ -9999,7 +10017,7 @@ class FunkPHPC
             $FUNK_DEPLOY_ARR[] = "namespace funkphp\\data\\validation {\n";
             $FUNK_DEPLOY_ARR[] = "}\n";
         }
-        // // LATER: 5.6 Build SQL if any
+        // // LATER TODO: 5.6 Build SQL if any
         if (
             isset($this->cached['placeholderBuildFiles']['sql'])
             && count($this->cached['placeholderBuildFiles']['sql']) > 0
@@ -10007,7 +10025,7 @@ class FunkPHPC
             $FUNK_DEPLOY_ARR[] = "namespace funkphp\\data\\sql {\n";
             $FUNK_DEPLOY_ARR[] = "}\n";
         }
-        // // LATER: 5.7 Build Query if any
+        // // LATER TODO: 5.7 Build Query if any
         if (
             isset($this->cached['placeholderBuildFiles']['query'])
             && count($this->cached['placeholderBuildFiles']['query']) > 0
@@ -10639,23 +10657,112 @@ class FunkPHPC
                             $FUNK_DEPLOY_ARR[]  = "\$c['req']['segments'][$rSEGIdx] = '/';\n";
                             continue;
                         }
-                        $FUNK_DEPLOY_ARR[]  = "\$c['req']['segments'][$rSEGIdx] = \$SEGS[$rSEGIdx];\n";
+                        $segsIndex = $rSEGIdx - 1;
+                        $FUNK_DEPLOY_ARR[]  = "\$c['req']['segments'][$rSEGIdx] = \$SEGS[$segsIndex];\n";
                         if (str_starts_with($rSEG, ':')) {
                             $rPARAMS[] = substr($rSEG, 1);
-                            $FUNK_DEPLOY_ARR[]  = "\$c['req']['params'][" . var_export(substr($rSEG, 1), true) . "] = \$SEGS[$rSEGIdx];\n";
+                            $FUNK_DEPLOY_ARR[]  = "\$c['req']['params'][" . var_export(substr($rSEG, 1), true) . "] = \$SEGS[$segsIndex];\n";
                         }
                     }
                 }
-                // Statically add any headers for the route
+                // Statically add any headers, csp and nonces for the route (those set directly on
+                // route will override those otherwise inherited on method and then global level)
                 if (isset($routeData['headers'])) {
+                    $FUNK_DEPLOY_ARR[]  =  "\$c['runtime']['route']['headers'] = " . $this->exportShortSyntax($routeData['headers']) . ";\n";
                 }
-                $FUNK_DEPLOY_ARR[]  =  "\n";
-                $FUNK_DEPLOY_ARR[]  =  "\n";
+                if (isset($routeData['csp'])) {
+                    $FUNK_DEPLOY_ARR[]  =  "\$c['runtime']['route']['csp'] = " . $this->exportShortSyntax($routeData['csp']) . ";\n";
+                }
+                if (isset($routeData['nonces'])) {
+                    $FUNK_DEPLOY_ARR[]  =  "\$c['runtime']['route']['nonces'] = " . $this->exportShortSyntax($routeData['nonces']) . ";\n";
+                }
+
                 // Logic for validating any params for matched route
                 if (count($rPARAMS) > 0) {
+                    $FUNK_DEPLOY_ARR[] = "\$c['req']['params_valid'] = true;\n";
+                    foreach ($rPARAMS as $rParIdx => $rParName) {
+                        if ($rSEGIdx === 0 || !str_starts_with($rSEG, ':')) {
+                            continue;
+                        }
+                        $paramName = substr($rSEG, 1);
+                        $segsIndex = $rSEGIdx - 1; // Offset for runtime $SEGS
+                        $paramMeta = $routeData['params'][$paramName] ?? null;
+                        if (!$paramMeta) {
+                            continue; // Default wildcard, no runtime validation needed!
+                        }
+                        $hasDefault = isset($paramMeta['default']) ? true : false;
+                        $defaultExpr = $hasDefault ? var_export($paramMeta['default'], true) : null;
+                        // --- 1. POLYMORPHIC PAIRS ---
+                        if (isset($paramMeta['pairs']) && is_array($paramMeta['pairs'])) {
+                            $first = true;
+                            foreach ($paramMeta['pairs'] as $pairName => $pairPattern) {
+                                $pairNameExpr = var_export($pairName, true);
+                                if ($pairPattern === '/[^\/]+/') {
+                                    $FUNK_DEPLOY_ARR[] = ($first ? "if(true) {\n" : "} else {\n");
+                                    $FUNK_DEPLOY_ARR[] = "    \$c['req']['param_variant'][" . var_export($paramName, true) . "] = $pairNameExpr;\n";
+                                    $first = false;
+                                    break;
+                                } else {
+                                    $patternExpr = var_export($pairPattern, true);
+                                    $cond = "preg_match($patternExpr, \$SEGS[$segsIndex])";
+                                    $FUNK_DEPLOY_ARR[] = $first ? "if ($cond) {\n" : "} elseif ($cond) {\n";
+                                    $FUNK_DEPLOY_ARR[] = "    \$c['req']['param_variant'][" . var_export($paramName, true) . "] = $pairNameExpr;\n";
+                                    $first = false;
+                                }
+                            }
+                            $FUNK_DEPLOY_ARR[] = "} else {\n";
+                            if ($hasDefault) {
+                                $FUNK_DEPLOY_ARR[] = "    \$c['req']['params'][" . var_export($paramName, true) . "] = $defaultExpr;\n";
+                            } else {
+                                $FUNK_DEPLOY_ARR[] = "    \$c['req']['params_valid'] = false;\n";
+                                if (isset($this->compiled['methods'][$routeMethod]['NO_ROUTE_MATCH'])) {
+                                    $FUNK_DEPLOY_ARR[] = "goto FUNKPHP_NO_ROUTE_MATCH_{$routeMethod};\n";
+                                } else {
+                                    $FUNK_DEPLOY_ARR[] = "goto $GOTO_STR_NO_MATCH_GLOBAL_AND_FALLBACK;\n";
+                                }
+                            }
+                            $FUNK_DEPLOY_ARR[] = "}\n";
+                        }
+                        // --- 2. CALLBACK FUNCTION ---
+                        elseif (isset($paramMeta['callback'])) {
+                            $cbName = $paramMeta['callback'];
+                            $FUNK_DEPLOY_ARR[] = "if(!{$cbName}(\$c, \$SEGS[$segsIndex])) {\n";
+                            if ($hasDefault) {
+                                $FUNK_DEPLOY_ARR[] = "    \$c['req']['params'][" . var_export($paramName, true) . "] = $defaultExpr;\n";
+                            } else {
+                                $FUNK_DEPLOY_ARR[] = "    \$c['req']['params_valid'] = false;\n";
+                                if (isset($this->compiled['methods'][$routeMethod]['NO_ROUTE_MATCH'])) {
+                                    $FUNK_DEPLOY_ARR[] = "goto FUNKPHP_NO_ROUTE_MATCH_{$routeMethod};\n";
+                                } else {
+                                    $FUNK_DEPLOY_ARR[] = "goto $GOTO_STR_NO_MATCH_GLOBAL_AND_FALLBACK;\n";
+                                }
+                            }
+                            $FUNK_DEPLOY_ARR[] = "}\n";
+                        }
+                        // --- 3. REGULAR PATTERN ---
+                        elseif (isset($paramMeta['pattern'])) {
+                            $pattern = $paramMeta['pattern'];
+                            // Skip wildcard matches completely
+                            if ($pattern !== '/[^\/]+/') {
+                                $patternExpr = var_export($pattern, true);
+                                $FUNK_DEPLOY_ARR[] = "if(!preg_match($patternExpr, \$SEGS[$segsIndex])) {\n";
+                                if ($hasDefault) {
+                                    $FUNK_DEPLOY_ARR[] = "    \$c['req']['params'][" . var_export($paramName, true) . "] = $defaultExpr;\n";
+                                } else {
+                                    $FUNK_DEPLOY_ARR[] = "    \$c['req']['params_valid'] = false;\n";
+                                    if (isset($this->compiled['methods'][$routeMethod]['NO_ROUTE_MATCH'])) {
+                                        $FUNK_DEPLOY_ARR[] = "goto FUNKPHP_NO_ROUTE_MATCH_{$routeMethod};\n";
+                                    } else {
+                                        $FUNK_DEPLOY_ARR[] = "goto $GOTO_STR_NO_MATCH_GLOBAL_AND_FALLBACK;\n";
+                                    }
+                                }
+                                $FUNK_DEPLOY_ARR[] = "}\n";
+                            }
+                        }
+                    }
                 }
 
-
+                // "exit;" is for the current Route Label in current Method!
                 $FUNK_DEPLOY_ARR[] = "exit;\n";
             }
         }
@@ -11422,7 +11529,7 @@ class FunkPHPConfig
      * - `report-uri`      : Endpoint URL where CSP violation reports are sent (Deprecated).
      * - `report-to`       : Reporting API group name for CSP violations.
      *
-     * @param string ...$sources One or more sources (e.g. `'self'`, `'https://cdn.example.com'`, `'sha256-...'`).
+     * @param string ...$sources One or more sources (e.g. `'self'`, `'nonce:name'`, `'https://cdn.example.com'`, `'sha256-...'`).
      *
      * @example
      * FunkPHP()->config()->setCSP('script-src', 'self', 'https://cdn.jsdelivr.net');
@@ -11809,10 +11916,10 @@ class FunkPHPConfig
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
      * @param '*'|'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
-     * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
+     * @param mixed $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
-    public function setParamRule(string $param, string $regexORcb, $defaultParamValueOnRegexMismatch = null): self
+    public function setParamRule(string $param, string $regexORcb, mixed $defaultParamValueOnRegexMismatch = null): self
     {
         $param = strtolower(trim($param));
         $this->c->batch('batchSetParamRuleGlobal', $param, $regexORcb, $defaultParamValueOnRegexMismatch);
@@ -12128,7 +12235,7 @@ class FunkPHPMethod
      * - `report-uri`      : Endpoint URL where CSP violation reports are sent (Deprecated).
      * - `report-to`       : Reporting API group name for CSP violations.
      *
-     * @param string ...$sources One or more sources (e.g. `'self'`, `'https://cdn.example.com'`, `'sha256-...'`).
+     * @param string ...$sources One or more sources (e.g. `'self'`, `'nonce:name'`, `'https://cdn.example.com'`, `'sha256-...'`).
      *
      * @example
      * FunkPHP()->config()->routes()-><METHOD>()->setCSP('script-src', 'self', 'https://cdn.jsdelivr.net');
@@ -12215,10 +12322,10 @@ class FunkPHPMethod
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
      * @param '*'|'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
-     * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
+     * @param mixed $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
-    public function setParamRule(string $param, string $regexORcb, string|null $defaultParamValueOnRegexMismatch = null): self
+    public function setParamRule(string $param, string $regexORcb, mixed $defaultParamValueOnRegexMismatch = null): self
     {
         $param = strtolower(trim($param));
         $this->c->batch('batchSetParamRuleMethod', $this->method, $param, $regexORcb, $defaultParamValueOnRegexMismatch);
@@ -12598,10 +12705,10 @@ class FunkPHPRoute
      *
      * @param string $param Parameter name without leading colon (e.g., "id")
      * @param '*'|'int'|'number'|'uint'|'digits'|'float'|'decimal'|'numeric'|'alpha'|'alpha_num'|'slug'|'hex'|'base64'|'mac'|'mac_address'|'ipv4'|'ipv6'|'ip'|'uuid'|'uuid_v1'|'uuid_v3'|'uuid_v4'|'uuid_v5'|'uuid_v7'|'ulid'|'date'|'date_iso'|'time'|'time_short'|'datetime'|'year'|'month'|'day'|string $regexORcb Pattern Alias, Raw Regex String, OR Custom Callback Function defined in `/src/funkphp/config/functions.php`.
-     * @param string|null $defaultParamValueOnRegexMismatch Fallback value if validation fails
+     * @param mixed $defaultParamValueOnRegexMismatch Fallback value if validation fails
      * @return $this
      */
-    public function setParamRule(string $param, string $regexORcb, string|null $defaultParamValueOnRegexMismatch = null): self
+    public function setParamRule(string $param, string $regexORcb, mixed $defaultParamValueOnRegexMismatch = null): self
     {
         $param = strtolower(trim($param));
         $this->c->batch('batchSetParamRuleRoute', $this->method, $this->routePath, $param, $regexORcb, $defaultParamValueOnRegexMismatch);
@@ -12691,7 +12798,7 @@ class FunkPHPRoute
      * - `report-uri`      : Endpoint URL where CSP violation reports are sent (Deprecated).
      * - `report-to`       : Reporting API group name for CSP violations.
      *
-     * @param string ...$sources One or more sources (e.g. `'self'`, `'https://cdn.example.com'`, `'sha256-...'`).
+     * @param string ...$sources One or more sources (e.g. `'self'`, `'nonce:name'`, `'https://cdn.example.com'`, `'sha256-...'`).
      *
      * @example
      * FunkPHP()->config()->routes()-><METHOD>->route()->setCSP('script-src', 'self', 'https://cdn.jsdelivr.net');

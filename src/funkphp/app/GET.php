@@ -8,4 +8,8 @@ $APP->ROUTES()
     ->setNoRouteMatchPage('test')
     ->route("/test/:id")
     ->setHeaderAdd('Content-Type', 'text/html')
-    ->setParamRule('id', '*');
+    ->setHeaderRemove('server')
+    ->setCSP('default-src', 'self')
+    ->setCSP('connect-src', 'nonce:test')
+    ->setParamRule('id', '/\\d+/');
+    //->setParamRulePolymorphic('id', 'id_nums', 'digits', 'id_slug', 'slug');

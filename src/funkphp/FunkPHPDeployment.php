@@ -2,7 +2,7 @@
 
 /**
  * FunkPHPDeployment File
- * Built: 2026-10-08 09:15:40
+ * Built: 2026-10-08 11:11:51
  * Compiler Flags: `ALLOW_GHOST_ROUTES`, `OUTPUT_OVERRIDE_DEBUG`
  * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING
  */
@@ -1308,8 +1308,16 @@ namespace {
     $c['req']['route'] = '/test/:id';
     $c['req']['uri'] = $URI;
     $c['req']['segments'][0] = '/';
-    $c['req']['segments'][1] = $SEGS[1];
-    $c['req']['segments'][2] = $SEGS[2];
-    $c['req']['params']['id'] = $SEGS[2];
+    $c['req']['segments'][1] = $SEGS[0];
+    $c['req']['segments'][2] = $SEGS[1];
+    $c['req']['params']['id'] = $SEGS[1];
+    $c['runtime']['route']['headers'] = ['add' => ['content-type' => 'content-type: text/html'], 'remove' => ['server']];
+    $c['runtime']['route']['csp'] = ['default-src' => ['\'self\''], 'connect-src' => []];
+    $c['runtime']['route']['nonces'] = ['nonce:test' => 'connect-src'];
+    $c['req']['params_valid'] = true;
+    if (!preg_match('/\\d+/', $SEGS[1])) {
+        $c['req']['params_valid'] = false;
+        goto FUNKPHP_NO_ROUTE_MATCH_GET;
+    }
     exit;
 }

@@ -1674,6 +1674,7 @@ function funk_internal_handle_sri_internal(&$c, $nonce) {}
 
 function funk_internal_handle_sri_external(&$c, $nonce) {}
 
+// SEND HEADERS (this are / should always occur BEFORE any PAYLOAD/OUTPUT To BROWSER/CONSUMER!)
 function funk_internal_send_headers(&$c, bool $ignoreCSP = false): void
 {
     if (headers_sent()) {
