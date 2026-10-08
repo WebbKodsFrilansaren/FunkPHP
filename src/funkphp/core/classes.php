@@ -9286,14 +9286,8 @@ class FunkPHPC
                         && isset($routeDetails['middlewares'])
                         && count($routeDetails['middlewares']) === 0
                     ) {
-                        if (!isset($this->compileFlags['ALLOW_GHOST_ROUTES'])) {
-                            $this->compile_setErr("👻 GHOST ROUTE `{$CURRENT_ROUTE_STR}`👻", "You must have `at least 1 Pipe` (when you do not need any Middleware) OR `at least 1 Middleware` (when you only want the Route to act as a Middleware Scope for other Children Routes to inherit Middleware from. If You ONLY use Middlewares for this Route then that means the Route Pipe-Empty Route `{$CURRENT_ROUTE_STR}` will return `404` when 'matched/visited').<br/><br/>Due to this Error, no further Compiling for this current Route `{$method}{$route}` will take place until `at least 1 Route Pipe/Middleware` first has been added. Use `->setCompileFlag('ALLOW_GHOST_ROUTES')` in `/src/funkphp/app/CONFIG.app` if you need to allow for Empty Routes for the moment. This Compiler Flag will be removed when `php funk build` is used to build the `FunkPHPDeployment.php` File as Empty Routes should NOT be used in Production and `php funk build` is meant for intentionally building it for Production!");
-                            $this->compiled['routes'][$method][$route] = $routeDetails;
-                            $this->compiled['routes'][$method][$route]['👻GHOST_ROUTE👻'] = true;
-                            continue;
-                        } else {
-                            $this->compiled['routes'][$method][$route]['👻GHOST_ROUTE👻'] = true;
-                        }
+                        // Assign it is a ghost route which can be parsed to do certain things due to it
+                        $this->compiled['routes'][$method][$route]['GHOST_ROUTE'] = true;
                     }
                     // When ONLY MWs implying a scoping method/route (like MWs that to be inherited by subroutes)
                     if (
@@ -9786,10 +9780,16 @@ class FunkPHPC
         $this->FUNKPHP_COMPILED_SUCCESS = true;
         if ($CompileAndRunLocally && !isset($this->compileFlags['OUTPUT_OVERRIDE_DEBUG'])) {
             $this->run();
+        } else {
+            $this->build();
         }
-        ///////////////////////////////////////////////////////
-        ////////// START BUILDING FunkPHPDeployment.php ///////
-        ///////////////////////////////////////////////////////
+    }
+    ///////////////////////////////////////////////////////
+    ////////// START BUILDING FunkPHPDeployment.php ///////
+    ///////////////////////////////////////////////////////
+    // `build()` outputs the $this->compiled data
+    private function build()
+    {
         // Debug is not allowed in Production Build! And also some
         // other things are NOT meant to be included unless custom
         // https kernel is set to be used which might wanna use
@@ -10077,7 +10077,7 @@ class FunkPHPC
             $FUNK_DEPLOY_ARR[] = "});\n";
         }
         // set custom or default in-built ip resolver so IP is resolved before any request pipes
-        if (isset($this->compiled['config']['runtime']['custom_ip_resolver'])) {
+        if (isset($this->compiled['config']['runtiOUTPUT_PATHme']['custom_ip_resolver'])) {
             $FNM = $this->compiled['config']['runtime']['custom_ip_resolver'];
             $FUNK_DEPLOY_ARR[] = "\$c['req']['ip'] = \\$FNM(\$c);\n";
         } else {
@@ -10541,8 +10541,8 @@ class FunkPHPC
                                 . var_export($this->compiled['routes'][$methodName][$sR]['cache']['private'], true)
                                 . ");\n";
                         }
-                        if (isset($this->compiled['routes'][$methodName][$sR]['👻GHOST_ROUTE👻'])) {
-                            $FUNK_DEPLOY_ARR[] = "case " . var_export($sR, true) . ": $RLimit $RCache \\funk_internal_critical_error_page(\$c,404," . var_export($this->NO_PIPES_FOUND_TEXT, true) . ",'No Pipes in Route','No Pipes Found'); exit;\n";
+                        if (isset($this->compiled['routes'][$methodName][$sR]['GHOST_ROUTE'])) {
+                            $FUNK_DEPLOY_ARR[] = "case " . var_export($sR, true) . ": $RLimit $RCache echo \\funk_internal_critical_error_page(\$c,404," . var_export($this->NO_PIPES_FOUND_TEXT, true) . ",'No Pipes in Route','No Pipes Found'); exit;\n";
                         } else {
                             $FUNK_DEPLOY_ARR[] = "case " . var_export($sR, true) . ": $RLimit $RCache goto {$sRG};\n";
                         }
@@ -10628,18 +10628,29 @@ class FunkPHPC
                 $rPARAMS = [];
                 if ($routeURI === '/') {
                     $FUNK_DEPLOY_ARR[]  = "\$c['req']['route'] = '/';\n";
-                    $FUNK_DEPLOY_ARR[]  = "\$c['req']['segments'][0] = ['/'];\n";
+                    $FUNK_DEPLOY_ARR[]  = "\$c['req']['uri'] = '/';\n";
+                    $FUNK_DEPLOY_ARR[]  = "\$c['req']['segments'][0] = '/';\n";
                 } else {
                     $routeURISplit = explode('/', $routeURI);
-                    $FUNK_DEPLOY_ARR[]  = "\$c['req']['route'] = \$URI;\n";
+                    $FUNK_DEPLOY_ARR[]  = "\$c['req']['route'] = '$routeURI';\n";
+                    $FUNK_DEPLOY_ARR[]  = "\$c['req']['uri'] = \$URI;\n";
                     foreach ($routeURISplit as $rSEGIdx => $rSEG) {
-                        $FUNK_DEPLOY_ARR[]  = "\$c['req']['segments'][$rSEGIdx] = \$SEG[$rSEGIdx];\n";
+                        if ($rSEGIdx === 0) {
+                            $FUNK_DEPLOY_ARR[]  = "\$c['req']['segments'][$rSEGIdx] = '/';\n";
+                            continue;
+                        }
+                        $FUNK_DEPLOY_ARR[]  = "\$c['req']['segments'][$rSEGIdx] = \$SEGS[$rSEGIdx];\n";
                         if (str_starts_with($rSEG, ':')) {
                             $rPARAMS[] = substr($rSEG, 1);
-                            $FUNK_DEPLOY_ARR[]  = "\$c['req']['params'][" . var_export(substr($rSEG, 1), true) . "] = \$SEG[$rSEGIdx];\n";
+                            $FUNK_DEPLOY_ARR[]  = "\$c['req']['params'][" . var_export(substr($rSEG, 1), true) . "] = \$SEGS[$rSEGIdx];\n";
                         }
                     }
                 }
+                // Statically add any headers for the route
+                if (isset($routeData['headers'])) {
+                }
+                $FUNK_DEPLOY_ARR[]  =  "\n";
+                $FUNK_DEPLOY_ARR[]  =  "\n";
                 // Logic for validating any params for matched route
                 if (count($rPARAMS) > 0) {
                 }
@@ -10681,11 +10692,14 @@ class FunkPHPC
                 cli_err("`/src/funkphp/FunkPHPDeployment.php` FAILED being Built after Compilation!");
             }
         }
-        //////////////////////////////////////////////////////
-        ////////// DONE BUILDING FunkPHPDeployment.php ///////
-        //////////////////////////////////////////////////////
     }
+    //////////////////////////////////////////////////////
+    ////////// DONE BUILDING FunkPHPDeployment.php ///////
+    //////////////////////////////////////////////////////
 
+    ///////////////////////////////////////////////////////
+    ////////// JUST RUN SUCCESSFUL $this->compiled ////////
+    ///////////////////////////////////////////////////////
     // `run()` is when it runs locally after successful compilation
     private function run()
     {
@@ -11018,6 +11032,9 @@ class FunkPHPC
         // This will also trigger registered shutdown functions/any post-response pipes unless triggered before reaching this point
         exit;
     }
+    ///////////////////////////////////////////////////////
+    //////// DONE RUNNING SUCCESSFUL $this->compiled //////
+    ///////////////////////////////////////////////////////
 
     // Transforms "/users/:id" to "_users_p__ID" (used for GOTO labels generating)
     // uses double __ since that can NEVER be inside of a Route URI when compiling so

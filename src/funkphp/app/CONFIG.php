@@ -3,7 +3,7 @@
 
 /** @var FunkPHP $APP */
 $APP->CONFIG()
-    ->setCompileFlag('RESPONSE_EXPLICIT_SET')
+    //->setCompileFlag('RESPONSE_EXPLICIT_SET')
     ->setCompileFlag('ALLOW_GHOST_ROUTES')
     ->setDebug(true, false, true)
     ->setCompileFlag('OUTPUT_OVERRIDE_DEBUG')

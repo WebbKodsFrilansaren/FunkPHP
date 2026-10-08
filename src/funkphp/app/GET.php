@@ -7,10 +7,5 @@ $APP->ROUTES()
     ->setRateLimit()
     ->setNoRouteMatchPage('test')
     ->route("/test/:id")
-    //->setParamRule('id', '*')
-    ->setAlias('test_by_id')
-    ->pipeFunction('test.test')
-    ->route("/")
-    ->pipeFunction('test.test')
-    ->route("/test/test-2")
-    ->pipeFunction('test.test');
+    ->setHeaderAdd('Content-Type', 'text/html')
+    ->setParamRule('id', '*');

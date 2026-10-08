@@ -2,8 +2,8 @@
 
 /**
  * FunkPHPDeployment File
- * Built: 2026-09-24 13:42:51
- * Compiler Flags: `RESPONSE_EXPLICIT_SET`, `ALLOW_GHOST_ROUTES`, `OUTPUT_OVERRIDE_DEBUG`
+ * Built: 2026-10-08 09:15:40
+ * Compiler Flags: `ALLOW_GHOST_ROUTES`, `OUTPUT_OVERRIDE_DEBUG`
  * DO NOT EDIT DIRECTLY - CHANGES ARE OVERWRITTEN WHEN (RE)BUILDING
  */
 
@@ -12,7 +12,7 @@ namespace {
     define('FUNKPHP_ONLINE', true);
     define('ROOT_FOLDER', __DIR__);
     define('ROOT_PAGES', __DIR__ . '/pages');
-    $c = ['BASEURLS' => ['LOCAL' => null, 'ONLINE' => null, 'BASEURL_URI' => null, 'HOST' => null], 'SESSION' => ['driver' => 'files', 'COOKIES' => ['SESSION_NAME' => 'fphp_id', 'SESSION_DOMAIN' => 'funkphp', 'SESSION_PATH' => '/', 'SESSION_LIFETIME' => 28800, 'SESSION_SAMESITE' => 'Lax', 'SESSION_SECURE' => false, 'SESSION_HTTPONLY' => true]], 'shared' => [], 'classes' => ['vendor' => [], 'user' => []], 'credentials' => null, 'connections' => [], 'req' => ['ip' => null, 'method' => null, 'prefers' => null, 'uri' => null, 'route' => null, 'route_matched' => false, 'segments' => null, 'params' => null, 'param_valid' => null, 'params_valid' => null, 'params_details' => null, 'accept_order' => null, 'accepts' => null, 'query' => null, 'base_url_absolute' => null, 'base_url_relative' => null, 'time' => null, 'log' => [], 'ua' => null], 'd' => null, 'v' => null, 'v_ok' => null, 'v_ok_files' => null, 'v_config' => [], 'v_data' => null, 'p' => null, 'files' => null, 'err' => [], 'runtime' => ['request_accepts' => [], 'request_ip_sources' => [], 'request_form_spoof_methods' => ['PUT', 'PATCH', 'DELETE'], 'trusted_ip_proxies' => ['ip4' => ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'], 'ip6' => ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32']], 'trusted_ip_headers' => ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'], 'state' => 'global', 'global_headers' => null, 'method_headers' => null, 'SKIP_POST_RESPONSE_ON_NO_MATCH' => false]];
+    $c = null;
     $c['req']['time'] = $_SERVER['REQUEST_TIME'] ?? time();
     $c['req']['query'] = $_SERVER['QUERY_STRING'] ?? null;
     $c['req']['ua'] = $_SERVER['HTTP_USER_AGENT'] ?? null;
@@ -1200,22 +1200,6 @@ namespace funkphp\pipes\request {
     }
 }
 
-namespace funkphp\pipes\routes\test {
-    function test(&$c)
-    {
-        if (\funk_req_prefers($c, 'json')) {
-            header('Content-Type: application/json');
-            echo json_encode(["message" => "This is a test JSON response from the test function!",]);
-            exit;
-        }
-        $c['req']['yo'] = "YO";
-        echo "<h1 style='font-size:12px;'>Testing with HTML tags to see how the cURL Request Test functionality in FunkGUI will react to it!</h1>";
-        echo "<div>";
-        echo "<p>(from funkphp\pipes\\routes\\test) This is a test paragraph to see how the cURL Request Test functionality in FunkGUI will react to it!</p>";
-        echo "</div>";
-    }
-}
-
 namespace {
     ob_start();
     if (file_exists(ROOT_FOLDER . '/vendor/autoload.php')) {
@@ -1299,7 +1283,7 @@ namespace {
     $URI = $c['req']['uri'] ?? '/';
     $SEGS = ($URI === '/') ? [] : explode('/', trim($URI, '/'));
     $SEGS_COUNT = count($SEGS);
-    if ($SEGS_COUNT > 2) {
+    if ($SEGS_COUNT < 2 || $SEGS_COUNT > 2) {
         unset($URI, $SEGS_COUNT);
         goto FUNKPHP_NO_ROUTE_MATCH_GLOBAL_AND_NO_NO_MATCH_GOTO;
     }
@@ -1307,46 +1291,25 @@ namespace {
     switch (($c['req']['method'] ?? 'GET')) {
         case 'GET':
             \funk_internal_rate_limiter($c, 60, 60, ['ip'], 'redis');
-            switch ($URI) {
-                case '/':
-                    goto FUNKPHP_ROUTE_GET_;
-                case '/test/test-2':
-                    goto FUNKPHP_ROUTE_GET_TEST_TESTd__2;
-            }
             switch ($SEGS_COUNT) {
                 case 2:
-                    goto FUNKPHP_GET_SEGS_2;
+                    if (strcasecmp($SEGS[0], 'test') === 0) {
+                        goto FUNKPHP_ROUTE_GET_TEST_p__ID;
+                    } else {
+                        goto FUNKPHP_NO_ROUTE_MATCH_GET;
+                    }
                 default:
                     goto FUNKPHP_NO_ROUTE_MATCH_GET;
             }
             break;
     }
-    FUNKPHP_GET_SEGS_2:
-    if (\strcasecmp($SEGS[0], 'test') === 0) {
-        if (\strcasecmp($SEGS[1], 'test-2') === 0) {
-            goto FUNKPHP_ROUTE_GET_TEST_TESTd__2;
-        }
-        goto FUNKPHP_ROUTE_GET_TEST_p__ID;
-    }
-    goto FUNKPHP_NO_ROUTE_MATCH_GET;
-    FUNKPHP_ROUTE_GET_:
-    $c['req']['route_matched'] = true;
-    $c['req']['route'] = '/';
-    $c['req']['segments'][0] = ['/'];
-    exit;
     FUNKPHP_ROUTE_GET_TEST_p__ID:
     $c['req']['route_matched'] = true;
-    $c['req']['route'] = $URI;
-    $c['req']['segments'][0] = $SEG[0];
-    $c['req']['segments'][1] = $SEG[1];
-    $c['req']['segments'][2] = $SEG[2];
-    $c['req']['params']['id'] = $SEG[2];
-    exit;
-    FUNKPHP_ROUTE_GET_TEST_TESTd__2:
-    $c['req']['route_matched'] = true;
-    $c['req']['route'] = $URI;
-    $c['req']['segments'][0] = $SEG[0];
-    $c['req']['segments'][1] = $SEG[1];
-    $c['req']['segments'][2] = $SEG[2];
+    $c['req']['route'] = '/test/:id';
+    $c['req']['uri'] = $URI;
+    $c['req']['segments'][0] = '/';
+    $c['req']['segments'][1] = $SEGS[1];
+    $c['req']['segments'][2] = $SEGS[2];
+    $c['req']['params']['id'] = $SEGS[2];
     exit;
 }
